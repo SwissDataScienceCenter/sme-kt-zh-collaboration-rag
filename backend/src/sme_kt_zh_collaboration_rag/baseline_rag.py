@@ -17,6 +17,7 @@ def get_docs() -> list[str]:
         "The KT-ZH SDSC prototyping workshop will kick off on the 23rd of February.",
         "Skiing is the best part about winter.",
         "We will go skiing in Klosters, it will be a lot of fun.",
+        "Viktoria is the youngest in the innovation team of SDSC in Zurich."
     ]
 
 
@@ -39,7 +40,7 @@ async def create_chromadb(
         chunks: list[Chunk], 
         embedding_model: SentenceTransformerEmbeddings
 ) -> ChromaDBVectorStore:
-    vector_store = ChromaDBVectorStore(db_path="backend/data_vs.db")
+    vector_store = ChromaDBVectorStore(db_path="data_vs.db")
     embeddings = await embedding_model.get_embeddings([c.content for c in chunks])
     await vector_store.insert_chunks(
         chunks=chunks,
@@ -120,7 +121,7 @@ async def create_rag(
     # preprocess query and rhen retriev
     response = await agent.answer( 
         QueryWithContext(
-            query="When does the Kanton Zurich and SDSC workshop start?",
+            query="Who is the youngest at SDSC in Zurich?",
             history=[], # optional, if len(history) > 0 then the query will be reformulated to be standalone/independent of history
         )
     )
