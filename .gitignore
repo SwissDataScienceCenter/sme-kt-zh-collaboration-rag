@@ -9,3 +9,9 @@
 
 # OSX-specific
 .DS_Store
+
+# Others
+*.db
+
+
+
