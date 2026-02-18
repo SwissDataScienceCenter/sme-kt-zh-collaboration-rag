@@ -1,3 +1,4 @@
+import asyncio
 from conversational_toolkit.agents.rag import RAG  # type: ignore[import-untyped]
 from conversational_toolkit.agents.base import QueryWithContext  # type: ignore[import-untyped]
 from conversational_toolkit.llms.ollama import OllamaLLM  # type: ignore[import-untyped]
@@ -127,10 +128,10 @@ async def create_rag(
 
 
 if __name__ == "__main__":
-    # asyncio.run(
-    #     create_rag(
-    #         embedding_model_name="sentence-transformers/all-MiniLM-L6-v2",
-    #         top_k=1,
-    #     )
-    # )
-    print("hello docker!!!")
+    asyncio.run(
+        create_rag(
+            embedding_model_name="sentence-transformers/all-MiniLM-L6-v2",
+            top_k=1,
+        )
+    )
+    # print("hello docker!!!")
