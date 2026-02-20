@@ -1,3 +1,4 @@
+import json
 import chromadb
 from typing import Any
 import numpy as np
@@ -33,7 +34,10 @@ class ChromaDBVectorStore(VectorStore):
         for chunk, _ in zip(chunks, embedding):
             doc_id = str(generate_uid())
             documents.append(chunk.content)
-            metadatas.append({"title": chunk.title, "mime_type": chunk.mime_type, **chunk.metadata})
+            raw_meta = {"title": chunk.title, "mime_type": chunk.mime_type, **chunk.metadata}
+            # ChromaDB only accepts str/int/float/bool — serialize anything else to JSON
+            safe_meta = {k: json.dumps(v) if isinstance(v, (list, dict)) else v for k, v in raw_meta.items()}
+            metadatas.append(safe_meta)
             ids.append(doc_id)
 
         self.collection.add(

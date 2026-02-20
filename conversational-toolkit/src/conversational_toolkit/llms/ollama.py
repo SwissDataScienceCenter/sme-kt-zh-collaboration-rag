@@ -113,7 +113,7 @@ class OllamaLLM(LLM):
         last_tool_call_sent = -1
         last_chunk: ChatResponse | None = None
         async for chunk in response:
-            logger.debug(chunk)
+            logger.trace(chunk)
             last_chunk = chunk
             if chunk.message.content:
                 yield LLMMessage(content=chunk.message.content)
