@@ -62,18 +62,37 @@ ollama pull mistral-nemo:12b
 ## Quick Start
 
 ```bash
-# Run the full pipeline with default Ollama backend
-python -m sme_kt_zh_collaboration_rag.baseline_rag
+# BACKEND must always be set explicitly — there is no default
 
-# Use OpenAI instead
-BACKEND=openai python -m sme_kt_zh_collaboration_rag.baseline_rag
+# Run with the local Ollama backend
+BACKEND=ollama python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+
+# Run with OpenAI
+BACKEND=openai python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
 
 # Custom query
-QUERY="Which tape products have a verified EPD?" python -m sme_kt_zh_collaboration_rag.baseline_rag
+BACKEND=ollama QUERY="Which tape products have a verified EPD?" python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
 
 # Force rebuild of the vector store
-RESET_VS=1 python -m sme_kt_zh_collaboration_rag.baseline_rag
+BACKEND=ollama RESET_VS=1 python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
 ```
+
+---
+
+## Workshop Feature Tracks
+
+The workshop is structured as six progressive feature tracks, each implemented as a Jupyter notebook in `backend/notebooks/`. They build on one another — start with feature0 and work your way forward.
+
+| Notebook | Topic | What you learn |
+|----------|-------|----------------|
+| `feature0_baseline_rag.ipynb` | **Baseline RAG Pipeline** | The five-stage RAG loop (chunk → embed → store → retrieve → generate), how retrieval inspection works as a debugging tool, and the three main failure modes the workshop addresses. |
+| `feature1_ingestion_chunking.ipynb` | **Document Ingestion & Chunking** | Header-based, fixed-size, and paragraph-aware chunking strategies; the embedding token-limit problem; handling PDF, Markdown, and Excel files; measuring and optimizing retrieval quality through chunking. |
+| `feature2_evaluation.ipynb` | **Evaluation & Validation** | Retrieval metrics (Hit Rate, MRR, Precision@k, Recall@k, NDCG@k); LLM-as-judge scoring for faithfulness and relevance; systematic comparison of retriever configurations using the ground-truth dataset. |
+| `feature3_structured_outputs.ipynb` | **Reliable & Structured Outputs** | Entity-grounding prompts and score-threshold filtering to prevent hallucination; structured JSON outputs with evidence levels (VERIFIED / CLAIMED / MISSING / MIXED); making claim quality machine-readable. |
+| `feature4_query_intelligence.ipynb` | **Query Intelligence** | Six retrieval strategies — baseline, query expansion, HyDE, BM25, hybrid search, and reranking; Reciprocal Rank Fusion (RRF) for merging ranked lists; choosing the right strategy for different query types. |
+| `feature5_agent_workflows.ipynb` | **Multi-step & Agent Workflows** | When single-shot RAG is insufficient; supplier-comparison with two-step retrieval to avoid bias; systematic evidence audits; gap-aware answering that explicitly flags missing or unverified data. |
+
+Each notebook is self-contained: it imports the `conversational_toolkit` library and runs against the documents in `data/`. You do not need to complete previous notebooks to run a later one, though the concepts build progressively.
 
 ---
 
@@ -233,23 +252,129 @@ Supplier-provided specs, datasheets, and article documents. Naming: `SPEC_{categ
 
 ## LLM Backends
 
+`BACKEND` must always be set explicitly — there is no default.
+
 | Backend | Command | Notes |
 |---------|---------|-------|
-| Ollama (default) | `python -m sme_kt_zh_collaboration_rag.baseline_rag` | Requires `ollama serve` and `ollama pull mistral-nemo:12b` |
-| OpenAI | `BACKEND=openai python -m ...` | Requires `OPENAI_API_KEY` env variable |
+| Ollama | `BACKEND=ollama python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag` | Requires `ollama serve` and `ollama pull mistral-nemo:12b` |
+| OpenAI | `BACKEND=openai python -m ...` | Requires `OPENAI_API_KEY` env var or `/secrets/OPENAI_API_KEY` file |
 | SDSC Qwen | `BACKEND=qwen python -m ...` | Requires `SDSC_QWEN3_32B_AWQ` env variable |
 
 Override the model: `MODEL=gpt-4o BACKEND=openai python -m ...`
 
 ---
 
-## Development
+## Contributing
+
+We welcome contributions: new feature notebooks, improvements to the toolkit library, additional documents in the dataset, or bug fixes. The steps below walk you through the full workflow from cloning to an approved pull request.
+
+### 1. Clone the repository
 
 ```bash
-# Run pre-commit hooks
+git clone https://github.com/kanton-zurich/sme-kt-zh-collaboration-rag.git
+cd sme-kt-zh-collaboration-rag
+```
+
+### 2. Set up your environment
+
+```bash
+# Create and activate a virtual environment
+python -m venv rag_venv
+source rag_venv/bin/activate  # on Windows: venv\Scripts\activate
+
+# Install all dependencies including the two editable packages
+pip install -r requirements.txt
+
+# Install pre-commit hooks (runs formatters and linters before every commit)
 pre-commit install
+```
+
+### 3. Create a feature branch
+
+Always work on a dedicated branch, never directly on `main`.
+
+```bash
+git checkout -b feature/my-descriptive-branch-name
+```
+
+Branch naming conventions:
+- `feature/` — new functionality or notebooks
+- `fix/` — bug fixes
+- `docs/` — documentation-only changes
+- `data/` — additions or corrections to the document corpus
+
+### 4. Make your changes
+
+A few guidelines depending on what you are changing:
+
+**Notebooks (`backend/notebooks/`):**
+- Keep cells focused and commented.
+- Follow the existing naming convention: `feature{N}_{short_topic}.ipynb`.
+
+**Toolkit library (`conversational-toolkit/`):**
+- Add or update unit tests in the corresponding `tests/` directory.
+- Run `pytest` before committing to confirm nothing is broken.
+- Keep new classes and functions typed (the project uses `mypy`).
+
+**Dataset (`data/`):**
+- Follow the file-prefix convention: `EPD_`, `SPEC_`, `REF_`, `ART_`, or `EVALUATION_`.
+- If adding a document that the RAG corpus should index, also add an entry to `README.md` under the appropriate `Dataset` subsection.
+- If a new document introduces a deliberate flaw (conflict, missing data, unverified claim), describe it in the table.
+
+### 5. Verify your changes locally
+
+```bash
+# Run the linter and formatter checks
+pre-commit run --all-files
+
+# Run the test suite
+pytest
+```
+
+Fix any reported issues before continuing.
+
+### 6. Commit your changes
+
+Write concise commit messages (e.g. `fix chunker token-limit handling`, `add EPD for StabilPlastik EP08`).
+
+```bash
+git add path/to/changed/files
+git commit -m "short description of what and why"
+```
+
+Avoid `git add .` when notebooks are involved, it is easy to accidentally commit large binary outputs.
+
+### 7. Push and open a pull request
+
+```bash
+git push -u origin feature/my-descriptive-branch-name
+```
+
+Then open a pull request on GitHub:
+
+1. Go to the repository on GitHub and click **"Compare & pull request"** (the banner that appears after you push).
+2. Set the **base branch** to `main`.
+3. Write a clear PR description:
+   - **What** does this PR change?
+   - **Why** is the change needed or useful?
+   - **How** was it tested (notebook run-through, `pytest`, manual check)?
+   - If it closes an open issue, add `Closes #<issue-number>` in the description.
+4. Request a review from at least one other contributor.
+
+### 8. Respond to review feedback
+Address comments by pushing additional commits to the same branch, do not open a new PR. Once all review threads are resolved and the CI checks pass, a maintainer will merge your PR into `main`.
+
+---
+
+## Development Reference
+
+```bash
+# Run pre-commit hooks manually
 pre-commit run --all-files
 
 # Run tests
 pytest
+
+# Clear notebook outputs (replace with your notebook path)
+jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace backend/notebooks/feature0_baseline_rag.ipynb
 ```

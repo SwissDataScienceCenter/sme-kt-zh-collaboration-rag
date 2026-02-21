@@ -1,6 +1,6 @@
 # Conversational Toolkit
 
-A modular Python library for building production-ready conversational AI applications. It provides pluggable abstractions for LLMs, embeddings, vector stores, document chunkers, agents, and a REST API layer — all wired together through a central controller that manages conversation history, streaming, and persistence.
+A modular Python library for building production-ready conversational AI applications. It provides pluggable abstractions for LLMs, embeddings, vector stores, document chunkers, agents, and a REST API layer, all wired together through a central controller that manages conversation history, streaming, and persistence.
 
 The toolkit pairs with [Conversational Toolkit Frontend](https://gitlab.datascience.ch/industry/common/conversational-toolkit-frontend) for a complete out-of-the-box chat interface. It can also be used standalone or headlessly.
 
@@ -82,22 +82,10 @@ pip install -e ./conversational-toolkit
 Or from a Git tag:
 
 ```sh
-pip install git+ssh://git@gitlab.datascience.ch/industry/common/conversational-toolkit.git@v7.0.4
+pip install git+ssh://git@gitlab.datascience.ch/industry/common/conversational-toolkit.git
 ```
 
-### Optional dependencies
-
-Optional document processing libraries are declared as extras:
-
-```sh
-pip install "conversational-toolkit[pdf]"             # pymupdf4llm for PDF chunking
-pip install "conversational-toolkit[pdf-markitdown]"  # markitdown as alternative PDF engine
-pip install "conversational-toolkit[excel]"           # openpyxl for Excel chunking
-pip install "conversational-toolkit[bm25]"            # rank-bm25 for BM25Retriever
-pip install "conversational-toolkit[eval]"            # built-in evaluation metrics (no extra deps)
-pip install "conversational-toolkit[eval-ragas]"      # RAGAS integration for additional metrics
-pip install "conversational-toolkit[all]"             # all optional extras
-```
+All document processing, retrieval, and evaluation dependencies (`pymupdf4llm`, `markitdown`, `openpyxl`, `rank-bm25`, `ragas`) are included in the standard install — no extras are required.
 
 ---
 
@@ -437,13 +425,7 @@ print(report.summary())
 
 Generation metrics prompt the judge LLM for a 0–5 integer score, normalised to [0, 1]. Any judge failure logs a `loguru` warning and contributes a score of 0.0 — the pipeline never raises.
 
-#### RAGAS adapter (optional)
-
-Install RAGAS support:
-
-```sh
-pip install "conversational-toolkit[eval-ragas]"
-```
+#### RAGAS adapter
 
 **Single-turn** (standard Q&A — each query is evaluated independently):
 
@@ -504,7 +486,7 @@ retriever = VectorStoreRetriever(
 
 #### `BM25Retriever`
 
-Keyword-based retrieval using the BM25 Okapi ranking function (via `rank-bm25`). Requires the `bm25` optional dependency. The corpus is indexed in memory at construction time, so retrieval has no I/O overhead. Takes a list of `ChunkRecord` objects (chunks that already have an ID from the vector store).
+Keyword-based retrieval using the BM25 Okapi ranking function (via `rank-bm25`). The corpus is indexed in memory at construction time, so retrieval has no I/O overhead. Takes a list of `ChunkRecord` objects (chunks that already have an ID from the vector store).
 
 ```python
 from conversational_toolkit.retriever.bm25_retriever import BM25Retriever

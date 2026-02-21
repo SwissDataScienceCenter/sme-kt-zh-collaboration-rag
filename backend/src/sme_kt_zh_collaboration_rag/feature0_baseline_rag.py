@@ -12,9 +12,9 @@ Steps at a glance:
     4  build_agent()         — Assemble the RAG agent from the vector store
     5  ask()                 — Send a query and return the answer
 
-LLM backends:
-    openai  — requires OPENAI_API_KEY environment variable
-    ollama  — local Ollama server at http://localhost:11434 (default)
+LLM backends (BACKEND must be set explicitly — there is no default):
+    ollama  — local Ollama server at http://localhost:11434
+    openai  — requires OPENAI_API_KEY (env var or /secrets/OPENAI_API_KEY file)
     qwen    — requires SDSC_QWEN3_32B_AWQ environment variable
 
 Data & vector store:
@@ -24,19 +24,17 @@ Data & vector store:
     Re-embedding is skipped on subsequent runs if the store already exists.
 
 Usage:
-    Run end-to-end with the default Ollama backend:
-        python -m sme_kt_zh_collaboration_rag.baseline_rag
-
-    Select a different LLM backend via environment variable:
-        BACKEND=openai python -m sme_kt_zh_collaboration_rag.baseline_rag
-        BACKEND=qwen   python -m sme_kt_zh_collaboration_rag.baseline_rag
+    BACKEND must always be provided explicitly:
+        BACKEND=ollama python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+        BACKEND=openai python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+        BACKEND=qwen   python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
 
     Override the query or model at runtime:
         QUERY="What is the carbon footprint of wood pallets?" \\
-        BACKEND=openai python -m sme_kt_zh_collaboration_rag.baseline_rag
+        BACKEND=openai python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
 
-        MODEL=gpt-4o BACKEND=openai python -m sme_kt_zh_collaboration_rag.baseline_rag
-        MODEL=llama3.2 BACKEND=ollama python -m sme_kt_zh_collaboration_rag.baseline_rag
+        MODEL=gpt-4o   BACKEND=openai python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+        MODEL=llama3.2 BACKEND=ollama python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
 """
 
 import asyncio
@@ -89,19 +87,43 @@ _CHUNKERS: dict[str, PDFChunker | ExcelChunker | MarkdownChunker] = {
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".tiff", ".bmp", ".webp"}
 
 
+def _get_openai_api_key() -> str:
+    """Load the OpenAI API key.
+
+    Checks in order:
+    1. /secrets/OPENAI_API_KEY — Renku secret file
+    2. OPENAI_API_KEY environment variable
+
+    Raises ValueError if neither is available.
+    """
+    secret_file = Path("/secrets/OPENAI_API_KEY")
+    if secret_file.exists():
+        return secret_file.read_text().strip()
+    key = os.environ.get("OPENAI_API_KEY", "")
+    if not key:
+        raise ValueError(
+            "OpenAI API key not found. Either:\n"
+            "  - Add it as a Renku secret at /secrets/OPENAI_API_KEY (see Renku_README.md), or\n"
+            "  - Set the OPENAI_API_KEY environment variable."
+        )
+    return key
+
+
 def build_llm(
-    backend: str = "ollama",
+    backend: str,
     model_name: str | None = None,
     temperature: float = 0.3,
 ) -> LLM:
     """Instantiate the LLM for the requested backend.
 
     Args:
-        backend: LLM backend, can be 'openai', 'ollama', or 'qwen'
-        model_name:  Model to use. Falls back to the per-backend default when None
-        temperature: Sampling temperature
+        backend:     LLM backend — must be one of 'ollama', 'openai', or 'qwen'. No default.
+        model_name:  Model to use. Falls back to the per-backend default when None.
+        temperature: Sampling temperature.
 
-    Reads credentials from environment variables, see module docstring.
+    For 'openai', the API key is loaded from /secrets/OPENAI_API_KEY (Renku) or
+    the OPENAI_API_KEY environment variable.
+    For 'qwen', the SDSC_QWEN3_32B_AWQ environment variable must be set.
     """
     backend = backend.lower().strip()
     match backend:
@@ -112,7 +134,7 @@ def build_llm(
                 model_name=name,
                 temperature=temperature,
                 seed=SEED,
-                openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+                openai_api_key=_get_openai_api_key(),
             )
         case "qwen":
             name = model_name or "Qwen/Qwen3-32B-AWQ"
@@ -332,7 +354,7 @@ async def ask(
 
 
 async def run_pipeline(
-    backend: str = "ollama",
+    backend: str,
     model_name: str | None = None,
     query: str = "What sustainability certifications do the pallets have?",
     reset_vs: bool = False,
@@ -340,7 +362,7 @@ async def run_pipeline(
     """Run the full five-step pipeline and return the final answer.
 
     Args:
-        backend:    LLM backend, options are 'openai', 'ollama', or 'qwen'
+        backend:    LLM backend — must be one of 'ollama', 'openai', or 'qwen'. No default.
         model_name: Model override, see build_llm() for per-backend defaults
         query:      The question to ask
         reset_vs:   Rebuild the vector store from scratch even if one exists
@@ -376,9 +398,16 @@ async def run_pipeline(
 
 
 if __name__ == "__main__":
+    _backend = os.getenv("BACKEND")
+    if not _backend:
+        raise SystemExit(
+            "The BACKEND environment variable is not set.\n"
+            "Choose one of: ollama, openai, qwen\n"
+            "Example: BACKEND=ollama python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag"
+        )
     asyncio.run(
         run_pipeline(
-            backend=os.getenv("BACKEND", "ollama"),
+            backend=_backend,
             model_name=os.getenv("MODEL") or None,
             query=os.getenv("QUERY", "What materials is the Lara pallet made out of?"),
             reset_vs=os.getenv("RESET_VS", "0") == "1",

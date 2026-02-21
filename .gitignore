@@ -19,7 +19,6 @@ venv/
 
 # Data / databases
 *.db
-data/
 
 # Runtime artefacts
 logs/
