@@ -10,19 +10,19 @@ This package (`sme_kt_zh_collaboration_rag`) contains the notebooks and the supp
 backend/
 ├── notebooks/                          # Workshop notebooks (one per feature track)
 │   ├── feature0_baseline_rag.ipynb
-│   ├── feature1_ingestion_chunking.ipynb
+│   ├── ...
 │   └── ...
 └── src/sme_kt_zh_collaboration_rag/
-    ├── feature0_baseline_rag.py        # Runnable baseline pipeline
-    ├── feature1_ingestion.py           # Chunking strategy helpers
-    └── ...                             # Further feature modules
+    ├── feature0_baseline_rag.py        # Runnable baseline
+    ├── ...
+    └── ...
 ```
 
 ---
 
 ## Feature tracks
 
-### Feature 0 — Baseline RAG Pipeline (`feature0_baseline_rag.ipynb`)
+### Feature 0: Baseline RAG Pipeline (`feature0_baseline_rag.ipynb`)
 
 Introduces the five-stage RAG loop and demonstrates it end-to-end against the PrimePack AG corpus.
 
@@ -60,27 +60,9 @@ The vector store is written to `backend/data_vs.db`. On subsequent runs, re-embe
 
 ---
 
-### Feature 1 — Document Ingestion & Chunking (`feature1_ingestion_chunking.ipynb`)
-
-Explores how chunking strategy affects retrieval quality and walks through the token-limit problem for embedding models.
-
-**Three strategies compared:**
-
-| Strategy | Description |
-|----------|-------------|
-| Header-based | One chunk per Markdown heading section — preserves document structure |
-| Fixed-size | Fixed character window with overlap — predictable, size-uniform |
-| Paragraph-aware | Merges paragraphs until a target size is reached — balances structure and size |
-
-**Key concept:** the default embedding model (`all-MiniLM-L6-v2`) has a **256-token limit**. Chunks exceeding this are silently truncated -> information at the tail of a long chunk is lost. The notebook shows how to visualise chunk-size distributions to identify and resolve this problem before embedding.
-
-The supporting module `feature1_ingestion.py` is designed to be imported from the notebook and exposes `ChunkStats` and the three chunking functions for side-by-side comparison.
-
----
-
 ## Further feature tracks
 
-Features 2–5 (Evaluation, Structured Outputs, Query Intelligence, Agent Workflows) will be detailed here soon.
+Features 1–4 (Evaluation, Structured Outputs, Query Intelligence, Agent Workflows) will be detailed here soon.
 
 ---
 
