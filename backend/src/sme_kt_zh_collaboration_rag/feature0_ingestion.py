@@ -14,7 +14,7 @@ models with higher token limits (e.g. OpenAI text-embedding-3-small: 8 191 token
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import pymupdf4llm  # type: ignore[import-untyped]
 from loguru import logger
@@ -194,3 +194,36 @@ def print_comparison_table(results: dict[str, tuple[list[Chunk], ChunkStats]]) -
     print("-" * len(header))
     for _, (_, stats) in results.items():
         print(str(stats))
+
+
+def validate_chunk_size(
+    file_path: str, test_chunker: Optional[Callable[..., list[Chunk]]] = None
+) -> dict[str, tuple[list[Chunk], ChunkStats, str]]:
+    """Run the three built-in chunkers (and an optional `test_chunker`) on
+    `file_path` and return validation stats.
+
+    Prints `analyze_chunks` summary and the `char_histogram` output for each chunker.
+    """
+    strategies: list[tuple[str, Callable[..., list[Chunk]], dict[str, Any]]] = [
+        ("header_based", header_based_chunks, {}),
+        ("fixed_size_800", fixed_size_chunks, {"chunk_size": 800, "overlap": 100}),
+        ("paragraph_600", paragraph_aware_chunks, {"target_chars": 600}),
+    ]
+    if test_chunker is not None:
+        strategies.append(("test_chunker", test_chunker, {}))
+
+    results: dict[str, tuple[list[Chunk], ChunkStats, str]] = {}
+    for name, fn, kwargs in strategies:
+        chunks = fn(file_path, **kwargs)
+        stats = analyze_chunks(chunks, name)
+        hist = char_histogram(chunks)
+        # Log a compact one-line summary and print the histogram for inspection
+        logger.info(f"Validation - {stats}")
+        print(f"\n=== {name} ===")
+        print(str(stats))
+        print("\nChunk size histogram:")
+        print(hist)
+
+        results[name] = (chunks, stats, hist)
+
+    return results
