@@ -316,6 +316,7 @@ def build_agent(
     top_k: int,
     system_prompt: str,
     number_query_expansion: int = 0,
+    enable_hyde: bool = False,
 ) -> RAG:
     """Assemble the RAG agent from a pre-built vector store and LLM.
 
@@ -331,6 +332,7 @@ def build_agent(
         system_prompt=system_prompt,
         retrievers=[retriever],
         number_query_expansion=number_query_expansion,
+        enable_hyde=enable_hyde,
     )
     logger.info(
         f"RAG agent ready (top_k={top_k}  query_expansion={number_query_expansion})"

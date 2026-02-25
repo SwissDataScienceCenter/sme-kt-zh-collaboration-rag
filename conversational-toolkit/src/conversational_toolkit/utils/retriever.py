@@ -1,3 +1,4 @@
+import loguru
 from textwrap import dedent
 from typing import Sequence
 
@@ -6,8 +7,18 @@ from conversational_toolkit.vectorstores.base import ChunkRecord
 
 
 async def make_query_standalone(llm: LLM, history: list[LLMMessage], query: str) -> str:
-    template_query_standalone = dedent("""
-        Objective: Your task is to analyze the input query and the provided conversation history. You need to reformulate the query so that it becomes independent of the conversation history, allowing anyone unfamiliar with the history to understand the query without needing additional context. However, if the input query is completely unrelated to the conversation history or already stands on its own without needing context from the history, you should not rephrase it.
+    template_query_standalone = dedent(
+        """
+        Objective: Your task is to analyze the input query and the provided conversation history. When the user mentions something that was mentioned in the conversation, but not clearly said in the current query, rewrite it.
+
+        Example:
+
+            User Query: How much does it cost?
+            Conversation History:
+                - User: Can you tell me about the price of the new iPhone?
+                - Assistant: The new iPhone costs around $999.
+            Reformulated Query: How much does the new iPhone cost?
+
 
         Input:
 
@@ -15,36 +26,11 @@ async def make_query_standalone(llm: LLM, history: list[LLMMessage], query: str)
             Conversation History:
                 {chat_history}
 
-        Instructions:
-
-            Step 1: Examine the current user query in the context of the provided conversation history.
-            Step 2: Determine if the query is dependent on the conversation history for its clarity and relevance. If it is, proceed to reformulate the query.
-                When reformulating, ensure that the new query is clear, concise, and can be understood without prior knowledge of the conversation history.
-                Use general terms instead of pronouns or references that only make sense with the history.
-            Step 3: If the query is completely independent of the conversation history or does not require context from the history for a new user to understand, do not reformulate it.
-            Step 4: Provide the reformulated or original query as the output.
-
-        Example:
-
-            User Query: "But what about its effects on global trade?"
-
-            Conversation History:
-                User: "Can you tell me about the recent changes in oil prices?"
-                Assistant: "Recent changes in oil prices have been significant due to various geopolitical events and shifts in supply and demand dynamics."
-
-            "What are the effects of recent changes in oil prices on global trade?"
-
-        Output:
-
-        If the query was reformulated based on its dependence on the conversation history, your response should look like this:
-
-            [Insert the reformulated query here, making it independent of the conversation history.]
-
-        If the query did not require reformulation and is already clear and independent:
-
-            [Insert the original query here, indicating it was already clear and independent of the conversation history.]
-    """)
+        Reformulated Query (ONLY the reformulated query, without any explanation):
+    """
+    )
     chat_history = "\n".join([f"{message.role}: {message.content}" for message in history])
+
     conversation = [
         LLMMessage(
             role=Roles.SYSTEM,
@@ -56,6 +42,10 @@ async def make_query_standalone(llm: LLM, history: list[LLMMessage], query: str)
         ),
     ]
     reformulated_query = (await llm.generate(conversation)).content
+
+    loguru.logger.debug(f"Original query: {query}")
+    loguru.logger.debug(f"Reformulated query: {reformulated_query}")
+
     return reformulated_query
 
 
@@ -70,11 +60,17 @@ async def query_expansion(query: str, llm: LLM, expansion_number: int = 2) -> li
             content="You are a focused assistant designed to generate multiple, relevant search queries based solely on a single input query. Your task is to produce a list of these queries in English, without adding any further explanations or information.",
         ),
         LLMMessage(
-            role=Roles.USER, content=template_query_expansion.format(query=query, expansion_number=expansion_number)
+            role=Roles.USER,
+            content=template_query_expansion.format(query=query, expansion_number=expansion_number),
         ),
     ]
 
     generated_queries = (await llm.generate(conversation)).content.strip().split("\n")
+
+    loguru.logger.debug(f"Original query for expansion: {query}")
+    for i, generated_query in enumerate(generated_queries, start=1):
+        loguru.logger.debug(f"Generated query {i}: {generated_query}")
+
     return generated_queries
 
 
@@ -82,11 +78,15 @@ async def hyde_expansion(query: str, llm: LLM) -> str:
     conversation = [
         LLMMessage(
             role=Roles.SYSTEM,
-            content="You are a helpful assistant. Provide an example of answer to the provided query. Only output an hypothetical explanation to the query.",
+            content="You are a helpful assistant. Provide an example of answer to the provided query. Only output an hypothetical explanation to the query. Concise, only a few sentences, without any introduction or conclusion.",
         ),
         LLMMessage(role=Roles.USER, content=query),
     ]
     hyde_expansion_message = (await llm.generate(conversation)).content
+
+    loguru.logger.debug(f"Original query for HyDE expansion: {query}")
+    loguru.logger.debug(f"HyDE expansion: {hyde_expansion_message}")
+
     return hyde_expansion_message
 
 

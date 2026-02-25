@@ -18,6 +18,7 @@ from conversational_toolkit.utils.retriever import (
     make_query_standalone,
     query_expansion,
     reciprocal_rank_fusion,
+    hyde_expansion,
 )
 from conversational_toolkit.vectorstores.base import ChunkRecord
 
@@ -44,6 +45,7 @@ class RAG(Agent):
         system_prompt: str,
         description: str = "",
         number_query_expansion: int = 0,
+        enable_hyde: bool = False,
     ):
         super().__init__(system_prompt, llm, description)
         self.description = description
@@ -51,6 +53,7 @@ class RAG(Agent):
         self.utility_llm = utility_llm
         self.retrievers = retrievers
         self.number_query_expansion = number_query_expansion
+        self.enable_hyde = enable_hyde
 
     async def answer_stream(self, query_with_context: QueryWithContext) -> AsyncGenerator[AgentAnswer, None]:
         query = query_with_context.query
@@ -58,10 +61,16 @@ class RAG(Agent):
 
         if len(history) > 0:
             query = await make_query_standalone(self.utility_llm, history, query)
+
+        queries = [query]
+
         if self.number_query_expansion > 0:
-            queries = await query_expansion(query, self.utility_llm, self.number_query_expansion)
-        else:
-            queries = [query]
+            queries_expanded = await query_expansion(query, self.utility_llm, self.number_query_expansion)
+            queries += queries_expanded
+
+        if self.enable_hyde:
+            hyde_expansion_message = await hyde_expansion(query, self.utility_llm)
+            queries.append(hyde_expansion_message)
 
         sources: list[ChunkRecord] = []
         for retriever in self.retrievers:
