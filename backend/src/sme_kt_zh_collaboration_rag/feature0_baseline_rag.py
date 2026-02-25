@@ -118,7 +118,7 @@ def build_llm(
     backend: str,
     model_name: str | None = None,
     temperature: float = 0.3,
-    response_format = None,
+    response_format=None,
 ) -> LLM:
     """Instantiate the LLM for the requested backend.
 
@@ -140,8 +140,7 @@ def build_llm(
                 temperature=temperature,
                 seed=SEED,
                 openai_api_key=_get_secret("OPENAI_API_KEY"),
-                response_format=response_format
-
+                response_format=response_format,
             )
         case "qwen":
             name = model_name or "Qwen/Qwen3-32B-AWQ"
