@@ -22,6 +22,24 @@ from loguru import logger
 from conversational_toolkit.chunking.base import Chunk
 from conversational_toolkit.chunking.pdf_chunker import PDFChunker
 
+from sme_kt_zh_collaboration_rag.feature0_baseline_rag import (
+    load_chunks,
+    inspect_chunks,
+    build_vector_store,
+    inspect_retrieval,
+    build_agent,
+    build_llm,
+    ask,
+    DATA_DIR,
+    VS_PATH,
+    EMBEDDING_MODEL,
+    RETRIEVER_TOP_K,
+)
+
+from conversational_toolkit.embeddings.sentence_transformer import (
+    SentenceTransformerEmbeddings,
+)
+
 
 @dataclass
 class ChunkStats:
@@ -165,7 +183,7 @@ def paragraph_aware_chunks(file_path: str, target_chars: int = 600) -> list[Chun
     return chunks
 
 
-def compare_strategies(file_path: str) -> dict[str, tuple[list[Chunk], ChunkStats]]:
+def compare_strategies(file_path: str) -> dict[str, tuple[Any, Any]]:
     """
     Run all three chunking strategies on a single file and return
     {strategy_name: (chunks, stats)} for inspection and comparison.
@@ -182,6 +200,7 @@ def compare_strategies(file_path: str) -> dict[str, tuple[list[Chunk], ChunkStat
         chunks = fn(file_path, **kwargs)
         stats = analyze_chunks(chunks, name)
         results[name] = (chunks, stats)
+        results[f"{name}_chunksize_over_toklimit"] = (stats.over_limit, None)
         logger.info(f"  {stats}")
 
     return results
@@ -196,34 +215,28 @@ def print_comparison_table(results: dict[str, tuple[list[Chunk], ChunkStats]]) -
         print(str(stats))
 
 
-def validate_chunk_size(
-    file_path: str, test_chunker: Optional[Callable[..., list[Chunk]]] = None
-) -> dict[str, tuple[list[Chunk], ChunkStats, str]]:
-    """Run the three built-in chunkers (and an optional `test_chunker`) on
-    `file_path` and return validation stats.
+def validate_chunks_one_topic(chunks: list[Chunk]) -> None:
+    """Validate that all chunks contain content related to the same topic."""
 
-    Prints `analyze_chunks` summary and the `char_histogram` output for each chunker.
-    """
-    strategies: list[tuple[str, Callable[..., list[Chunk]], dict[str, Any]]] = [
-        ("header_based", header_based_chunks, {}),
-        ("fixed_size_800", fixed_size_chunks, {"chunk_size": 800, "overlap": 100}),
-        ("paragraph_600", paragraph_aware_chunks, {"target_chars": 600}),
-    ]
-    if test_chunker is not None:
-        strategies.append(("test_chunker", test_chunker, {}))
+    query = "How many topics is this chunk about? Answer with the topic(s) and the corresponding number of topics."
+    llm = build_llm(backend="ollama", model_name="mistral-nemo:12b")
+    SYSTEM_PROMPT = (
+        "You are a helpful AI assistant specialised in summarising short chunks of text into its main topic(s).\n\n"
+        "You will receive a chunk of text. Produce the best possible answer using only the information in those excerpts."
+    )
+    embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
+    vector_store = build_vector_store(chunks, embedding_model=embedding_model)
 
-    results: dict[str, tuple[list[Chunk], ChunkStats, str]] = {}
-    for name, fn, kwargs in strategies:
-        chunks = fn(file_path, **kwargs)
-        stats = analyze_chunks(chunks, name)
-        hist = char_histogram(chunks)
-        # Log a compact one-line summary and print the histogram for inspection
-        logger.info(f"Validation - {stats}")
-        print(f"\n=== {name} ===")
-        print(str(stats))
-        print("\nChunk size histogram:")
-        print(hist)
+    agent = build_agent(
+        vector_store=vector_store,
+        embedding_model=embedding_model,
+        llm=llm,
+        top_k=RETRIEVER_TOP_K,
+        system_prompt=SYSTEM_PROMPT,
+        number_query_expansion=0,  # 0 = no expansion; see Feature Track 3 for more
+    )
+    print("RAG agent assembled.")
 
-        results[name] = (chunks, stats, hist)
-
-    return results
+    for idx, c in enumerate(chunks):
+        response = ask(agent, query)
+        print(f"Chunk {idx} has following topics and no. of topics: {response}:")
