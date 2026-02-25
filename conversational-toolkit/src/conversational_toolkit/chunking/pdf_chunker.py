@@ -1,8 +1,13 @@
+import os
+import shutil
+import io
+import base64
 import re
 from enum import StrEnum
 
 import pymupdf4llm  # type: ignore[import-untyped]
 from markitdown import MarkItDown  # type: ignore[import-untyped]
+from PIL import Image  # type: ignore[import-untyped]
 
 from conversational_toolkit.chunking.base import Chunk, Chunker
 
@@ -13,6 +18,9 @@ class MarkdownConverterEngine(StrEnum):
 
 
 class PDFChunker(Chunker):
+    # TODO: Improve by not creating temporary files for images and support more image formats
+    # TODO: Currently resizing, maybe not desired.
+
     def _pdf2markdown(
         self,
         file_path: str,
@@ -28,6 +36,10 @@ class PDFChunker(Chunker):
                     kwargs["image_path"] = image_path
             return pymupdf4llm.to_markdown(file_path, **kwargs)  # type: ignore[no-any-return]
         elif engine == MarkdownConverterEngine.MARKITDOWN:
+            if write_images:
+                raise NotImplementedError(
+                    "Image extraction is not supported with MarkItDown engine."
+                )
             result = MarkItDown().convert(file_path)
             return result.text_content
         else:
@@ -45,7 +57,9 @@ class PDFChunker(Chunker):
         write_images: bool = False,
         image_path: str | None = None,
     ) -> list[Chunk]:
-        markdown = self._pdf2markdown(file_path, engine, write_images=write_images, image_path=image_path)
+        markdown = self._pdf2markdown(
+            file_path, engine, write_images=write_images, image_path=image_path
+        )
 
         header_pattern = re.compile(r"^(#{1,6}\s.*)$", re.MULTILINE)
         matches = list(header_pattern.finditer(markdown))
@@ -55,7 +69,12 @@ class PDFChunker(Chunker):
 
         if not matches:
             processed_text = self._normalize_newlines(markdown)
-            chunk = Chunk(title="", content=processed_text, mime_type="text/markdown", metadata={"chapters": []})
+            chunk = Chunk(
+                title="",
+                content=processed_text,
+                mime_type="text/markdown",
+                metadata={"chapters": []},
+            )
             return [chunk]
 
         for i, match in enumerate(matches):
@@ -83,5 +102,28 @@ class PDFChunker(Chunker):
                 metadata={"chapters": current_chapters.copy()},
             )
             chunks.append(chunk)
+
+        if write_images and image_path:
+            for file_name in os.listdir(image_path):
+                extension = os.path.splitext(file_name)[1].lower()
+                if extension in [".png", ".jpg", ".jpeg", ".gif"]:
+                    image_file_path = os.path.join(image_path, file_name)
+                    with Image.open(image_file_path) as img:
+                        buffered = io.BytesIO()
+                        img.save(buffered, format=img.format)
+                        base64_encoding = base64.b64encode(buffered.getvalue()).decode(
+                            "utf-8"
+                        )
+
+                    image_chunk = Chunk(
+                        title=file_name,
+                        content=base64_encoding,
+                        mime_type=f"image/{extension[1:]}",
+                        metadata={"chapters": []},
+                    )
+                    chunks.append(image_chunk)
+
+        if write_images and image_path:
+            shutil.rmtree(image_path)
 
         return chunks
