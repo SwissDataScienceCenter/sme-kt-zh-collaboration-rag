@@ -44,6 +44,13 @@ class ToolCall(BaseModel):
     type: str
 
 
+class MessageContent(BaseModel):
+
+    type: str
+    text: str | None = None
+    image_url: str | None = None
+
+
 class LLMMessage(BaseModel):
     """
     A single message in a conversation sent to or received from an LLM.
@@ -53,7 +60,7 @@ class LLMMessage(BaseModel):
     message that carries the tool result back to the model.
     """
 
-    content: str = ""
+    content: list[MessageContent]
     role: Roles = Roles.ASSISTANT
     tool_calls: list[ToolCall] | None = None
     tool_call_id: str | None = None
@@ -79,6 +86,8 @@ class LLM(ABC):
         pass
 
     @abstractmethod
-    def generate_stream(self, conversation: list[LLMMessage]) -> AsyncGenerator[LLMMessage, None]:
+    def generate_stream(
+        self, conversation: list[LLMMessage]
+    ) -> AsyncGenerator[LLMMessage, None]:
         """Yield response chunks as they arrive from the model."""
         pass

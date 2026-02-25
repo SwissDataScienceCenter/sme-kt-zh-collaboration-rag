@@ -3,18 +3,43 @@ from typing import Any, Literal, cast
 
 from loguru import logger
 from openai import AsyncOpenAI, omit
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam, completion_create_params
+from openai.types.chat import (
+    ChatCompletionMessageParam,
+    ChatCompletionToolParam,
+    completion_create_params,
+)
 
-from conversational_toolkit.llms.base import LLM, LLMMessage, ToolCall, Roles, Function
+from conversational_toolkit.llms.base import (
+    LLM,
+    LLMMessage,
+    ToolCall,
+    Roles,
+    Function,
+    MessageContent,
+)
 from conversational_toolkit.tools.base import Tool
 from conversational_toolkit.utils.metadata_provider import MetadataProvider
 
 
 def message_to_openai(msg: LLMMessage) -> ChatCompletionMessageParam:
+    # TODO: Currently, assumes images are always base64
+    # TODO: Currently, always interpreted as PNG, to change
+
     message: dict[str, Any] = {
         "role": msg.role.value,
-        "content": msg.content,
     }
+    message["content"] = []
+
+    for content in msg.content:
+        if "text" in content.type and content.text is not None:
+            message["content"].append({"type": "text", "text": content.text})
+        elif "image" in content.type and content.image_url is not None:
+            message["content"].append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{content.image_url}"},
+                }
+            )
 
     if msg.name:
         message["name"] = msg.name
@@ -49,6 +74,8 @@ class OpenAILLM(LLM):
         response_format: completion_create_params.ResponseFormat | None = None,
         openai_api_key: str | None = None,
     ):
+        # TODO: Currently only supports text output
+
         super().__init__()
         if response_format is None:
             response_format = {"type": "text"}
@@ -73,14 +100,22 @@ class OpenAILLM(LLM):
         Returns:
 
         """
+
+        messages_as_openai = [message_to_openai(msg) for msg in conversation]
+
         completion = await self.client.chat.completions.create(
             model=self.model,
-            messages=[message_to_openai(msg) for msg in conversation],
+            messages=messages_as_openai,
             temperature=self.temperature,
             seed=self.seed,
-            tools=cast(list[ChatCompletionToolParam], [tool.json_schema() for tool in self.tools])
-            if self.tools
-            else omit,
+            tools=(
+                cast(
+                    list[ChatCompletionToolParam],
+                    [tool.json_schema() for tool in self.tools],
+                )
+                if self.tools
+                else omit
+            ),
             tool_choice=self.tool_choice if self.tool_choice is not None else omit,
             response_format=self.response_format,
         )
@@ -95,18 +130,25 @@ class OpenAILLM(LLM):
         )
 
         return LLMMessage(
-            content=completion.choices[0].message.content or "",
-            role=Roles(completion.choices[0].message.role),
-            tool_calls=[
-                ToolCall(
-                    id=tc.id,
-                    function=Function(name=tc.function.name, arguments=tc.function.arguments),  # type: ignore[union-attr]
-                    type="function",
+            content=[
+                MessageContent(
+                    type="text",
+                    text=completion.choices[0].message.content or "",
                 )
-                for tc in completion.choices[0].message.tool_calls
-            ]
-            if completion.choices[0].message.tool_calls
-            else [],
+            ],
+            role=Roles(completion.choices[0].message.role),
+            tool_calls=(
+                [
+                    ToolCall(
+                        id=tc.id,
+                        function=Function(name=tc.function.name, arguments=tc.function.arguments),  # type: ignore[union-attr]
+                        type="function",
+                    )
+                    for tc in completion.choices[0].message.tool_calls
+                ]
+                if completion.choices[0].message.tool_calls
+                else []
+            ),
         )
 
     @staticmethod
@@ -119,15 +161,25 @@ class OpenAILLM(LLM):
             if tool_call_chunk.function.arguments:
                 tool_call.function.arguments += tool_call_chunk.function.arguments
 
-    async def generate_stream(self, conversation: list[LLMMessage]) -> AsyncGenerator[LLMMessage, None]:
+    async def generate_stream(
+        self, conversation: list[LLMMessage]
+    ) -> AsyncGenerator[LLMMessage, None]:
+
+        messages_as_openai = [message_to_openai(msg) for msg in conversation]
+
         response = await self.client.chat.completions.create(
             model=self.model,
-            messages=[message_to_openai(msg) for msg in conversation],
+            messages=messages_as_openai,
             temperature=self.temperature,
             seed=self.seed,
-            tools=cast(list[ChatCompletionToolParam], [tool.json_schema() for tool in self.tools])
-            if self.tools
-            else omit,
+            tools=(
+                cast(
+                    list[ChatCompletionToolParam],
+                    [tool.json_schema() for tool in self.tools],
+                )
+                if self.tools
+                else omit
+            ),
             tool_choice=self.tool_choice if self.tool_choice is not None else omit,
             stream=True,
             response_format=self.response_format,
@@ -143,7 +195,12 @@ class OpenAILLM(LLM):
                 continue
             if chunk.choices[0].delta.content:
                 yield LLMMessage(
-                    content=chunk.choices[0].delta.content,
+                    content=[
+                        MessageContent(
+                            type="text",
+                            text=chunk.choices[0].delta.content,
+                        )
+                    ],
                 )
             if chunk.choices[0].delta.tool_calls:
                 tool_call_chunk_list = chunk.choices[0].delta.tool_calls
@@ -154,7 +211,11 @@ class OpenAILLM(LLM):
                                 tool_calls=[parsed_tool_calls[-1]],
                             )
                         parsed_tool_calls.append(
-                            ToolCall(id="", type="function", function=Function(name="", arguments=""))
+                            ToolCall(
+                                id="",
+                                type="function",
+                                function=Function(name="", arguments=""),
+                            )
                         )
                     tool_call = parsed_tool_calls[tool_call_chunk.index]
                     self._update_tool_call_from_chunk(tool_call, tool_call_chunk)
