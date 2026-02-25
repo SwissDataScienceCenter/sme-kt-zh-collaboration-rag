@@ -11,7 +11,7 @@ the sources into the LLM prompt using XML tags.
 from typing import Any, AsyncGenerator
 
 from conversational_toolkit.agents.base import Agent, AgentAnswer, QueryWithContext
-from conversational_toolkit.llms.base import LLM, LLMMessage, Roles
+from conversational_toolkit.llms.base import LLM, LLMMessage, Roles, MessageContent
 from conversational_toolkit.retriever.base import Retriever
 from conversational_toolkit.utils.retriever import (
     build_query_with_chunks,
@@ -25,6 +25,10 @@ from conversational_toolkit.vectorstores.base import ChunkRecord
 class RAG(Agent):
     """
     RAG agent that retrieves document chunks before generating an answer.
+
+    # TODO: Currently only outputs text
+    # TODO: Forced to give images as user role
+    # TODO: Remove their concept of sources in their format XML
 
     Attributes:
         utility_llm: A (typically cheaper) LLM used for query rewriting and
@@ -52,14 +56,18 @@ class RAG(Agent):
         self.retrievers = retrievers
         self.number_query_expansion = number_query_expansion
 
-    async def answer_stream(self, query_with_context: QueryWithContext) -> AsyncGenerator[AgentAnswer, None]:
+    async def answer_stream(
+        self, query_with_context: QueryWithContext
+    ) -> AsyncGenerator[AgentAnswer, None]:
         query = query_with_context.query
         history = query_with_context.history
 
         if len(history) > 0:
             query = await make_query_standalone(self.utility_llm, history, query)
         if self.number_query_expansion > 0:
-            queries = await query_expansion(query, self.utility_llm, self.number_query_expansion)
+            queries = await query_expansion(
+                query, self.utility_llm, self.number_query_expansion
+            )
         else:
             queries = [query]
 
@@ -69,20 +77,57 @@ class RAG(Agent):
             if retrieved:
                 sources += reciprocal_rank_fusion(retrieved)[: retriever.top_k]
 
+        sources_as_message = LLMMessage(role=Roles.USER, content=[])
+
+        for source in sources:
+            if "text" in source.mime_type:
+                sources_as_message.content.append(
+                    MessageContent(
+                        type="text",
+                        text=f"<source id='{source.id}'>{source.content}</source>",
+                    )
+                )
+            elif "image" in source.mime_type:
+                sources_as_message.content.append(
+                    MessageContent(
+                        type="image",
+                        image_url=source.content,
+                    )
+                )
+            else:
+                raise ValueError(f"Unsupported MIME type: {source.mime_type}")
+
         response_stream = self.llm.generate_stream(
             [
-                LLMMessage(role=Roles.SYSTEM, content=self.system_prompt),
+                LLMMessage(
+                    role=Roles.SYSTEM,
+                    content=[MessageContent(type="text", text=self.system_prompt)],
+                ),
                 *history,
-                LLMMessage(role=Roles.USER, content=build_query_with_chunks(query, sources)),
+                sources_as_message,
+                LLMMessage(
+                    role=Roles.USER,
+                    content=[MessageContent(type="text", text=query)],
+                ),
             ]
         )
 
         content = ""
         async for response_chunk in response_stream:
             if response_chunk.content:
-                content += response_chunk.content
+                for message_content in response_chunk.content:
+                    if message_content.type == "text" and message_content.text:
+                        content += message_content.text
+                    elif message_content.type == "image" and message_content.image_url:
+                        raise NotImplementedError(
+                            "Image output from LLM is not supported in this version."
+                        )
                 answer = await self._answer_post_processing(
-                    AgentAnswer(content=content, role=Roles.ASSISTANT, sources=sources)
+                    AgentAnswer(
+                        content=[MessageContent(type="text", text=content)],
+                        role=Roles.ASSISTANT,
+                        sources=sources,
+                    )
                 )
                 if answer:
                     yield answer
