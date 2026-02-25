@@ -71,6 +71,7 @@ class RAG(Agent):
 
         response_stream = self.llm.generate_stream(
             [
+                LLMMessage(role=Roles.SYSTEM, content=self.system_prompt),
                 *history,
                 LLMMessage(role=Roles.USER, content=build_query_with_chunks(query, sources)),
             ]

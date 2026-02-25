@@ -118,6 +118,7 @@ def build_llm(
     backend: str,
     model_name: str | None = None,
     temperature: float = 0.3,
+    response_format=None,
 ) -> LLM:
     """Instantiate the LLM for the requested backend.
 
@@ -125,6 +126,7 @@ def build_llm(
         backend:     LLM backend — must be one of 'ollama', 'openai', or 'qwen'. No default.
         model_name:  Model to use. Falls back to the per-backend default when None.
         temperature: Sampling temperature.
+        response_format: Optional parameter to specify the desired response format (e.g., "json"). Supported by some backends.
 
     For 'openai', the key is loaded from /secrets/OPENAI_API_KEY or the OPENAI_API_KEY env var.
     """
@@ -138,6 +140,7 @@ def build_llm(
                 temperature=temperature,
                 seed=SEED,
                 openai_api_key=_get_secret("OPENAI_API_KEY"),
+                response_format=response_format,
             )
         case "qwen":
             name = model_name or "Qwen/Qwen3-32B-AWQ"
@@ -158,7 +161,7 @@ def build_llm(
                 seed=SEED,
                 tools=None,
                 tool_choice=None,
-                response_format=None,
+                response_format=response_format,
                 host=None,  # default http://localhost:11434
             )
         case _:
