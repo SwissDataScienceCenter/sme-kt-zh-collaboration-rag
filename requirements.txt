@@ -1,11 +1,13 @@
 -e ./conversational-toolkit/
 -e ./backend/
 chromadb==1.4.1
+docling
 fastapi==0.115.14
 httpx==0.28.1
 jupyterlab==4.4.10
 loguru==0.6.0
 markitdown==0.1.4
+matplotlib==3.9.4
 numpy==2.3.3
 ollama==0.6.1
 openai==2.21.0
@@ -13,11 +15,14 @@ openpyxl==3.1.5
 pgvector==0.4.2
 pydantic==2.10.6
 pymupdf4llm==0.3.4
+pypdf==6.6.2
 pytest==8.4.1
+python-docx
 python-jose==3.4.0
 ragas==0.4.3
 rank-bm25==0.2.2
 ruff==0.12.3
 sentence-transformers==5.1.1
 SQLAlchemy==2.0.46
+unstructured[pdf]
 uvicorn==0.35.0
