@@ -32,8 +32,8 @@ class BM25Retriever(Retriever[ChunkMatch]):
     def __init__(self, vector_store, top_k: int) -> None:
         super().__init__(top_k)
         # self.corpus = corpus
-        chunks = vector_store.collection.get(include=["documents", "metadatas"])
-        tokenized = [self._tokenize(chunk.content) for chunk in chunks]
+        self.chunks = vector_store.collection.get(include=["documents"])["documents"]  # type: ignore
+        tokenized = [self._tokenize(chunk) for chunk in self.chunks]
         self._bm25 = BM25Okapi(tokenized)
 
     @staticmethod
@@ -50,12 +50,12 @@ class BM25Retriever(Retriever[ChunkMatch]):
         ]
         return [
             ChunkMatch(
-                id=self.corpus[i].id,
-                title=self.corpus[i].title,
-                content=self.corpus[i].content,
-                mime_type=self.corpus[i].mime_type,
-                metadata=self.corpus[i].metadata,
-                embedding=self.corpus[i].embedding,
+                id=str(i),
+                embedding=[],  # BM25 doesn't use embeddings
+                title="",  # Not stored in this retriever
+                content=self.chunks[i],  # type: ignore
+                mime_type="",  # Not stored in this retriever
+                metadata={},  # Not stored in this retriever
                 score=scores[i],
             )
             for i in top_indices
