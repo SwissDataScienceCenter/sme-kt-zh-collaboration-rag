@@ -42,6 +42,8 @@ from pathlib import Path
 
 from loguru import logger
 
+from typing import Type
+
 from conversational_toolkit.agents.base import QueryWithContext
 from conversational_toolkit.agents.rag import RAG
 from conversational_toolkit.chunking.base import Chunk
@@ -55,6 +57,7 @@ from conversational_toolkit.llms.base import LLM, LLMMessage
 from conversational_toolkit.llms.local_llm import LocalLLM
 from conversational_toolkit.llms.ollama import OllamaLLM
 from conversational_toolkit.llms.openai import OpenAILLM
+from conversational_toolkit.retriever.base import Retriever
 from conversational_toolkit.retriever.vectorstore_retriever import VectorStoreRetriever
 from conversational_toolkit.vectorstores.base import ChunkMatch
 from conversational_toolkit.vectorstores.chromadb import ChromaDBVectorStore
@@ -277,9 +280,8 @@ async def build_vector_store(
 
 async def inspect_retrieval(
     query: str,
-    vector_store: ChromaDBVectorStore,
-    embedding_model: SentenceTransformerEmbeddings,
     top_k: int = RETRIEVER_TOP_K,
+    retriever=Retriever[ChunkMatch],
 ) -> list[ChunkMatch]:
     """Run semantic retrieval and print the results before the LLM sees anything.
 
@@ -294,7 +296,6 @@ async def inspect_retrieval(
     retrieved from ChromaDB or, after a full store insert, re-fetch them with
     'vector_store.get_chunks_by_embedding(zero_vector, top_k=N)'.
     """
-    retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
     results = await retriever.retrieve(query)
 
     logger.info(f"Retrieval for query: {query!r}")
@@ -310,12 +311,12 @@ async def inspect_retrieval(
 
 
 def build_agent(
-    vector_store: ChromaDBVectorStore,
-    embedding_model: SentenceTransformerEmbeddings,
     llm: LLM,
     top_k: int,
     system_prompt: str,
+    retriever: Retriever[ChunkMatch],
     number_query_expansion: int = 0,
+    enable_hyde: bool = False,
 ) -> RAG:
     """Assemble the RAG agent from a pre-built vector store and LLM.
 
@@ -324,13 +325,14 @@ def build_agent(
     before generation. Useful for broad or ambiguous questions but adds one
     LLM call per expansion.
     """
-    retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
+
     agent = RAG(
         llm=llm,
         utility_llm=llm,
         system_prompt=system_prompt,
         retrievers=[retriever],
         number_query_expansion=number_query_expansion,
+        enable_hyde=enable_hyde,
     )
     logger.info(
         f"RAG agent ready (top_k={top_k}  query_expansion={number_query_expansion})"

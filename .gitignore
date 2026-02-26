@@ -29,3 +29,6 @@ conversations.json
 messages.json
 reactions.json
 chunks.db/
+
+rag_venv/
+db/
