@@ -42,6 +42,8 @@ from pathlib import Path
 
 from loguru import logger
 
+from typing import Type
+
 from conversational_toolkit.agents.base import QueryWithContext
 from conversational_toolkit.agents.rag import RAG
 from conversational_toolkit.chunking.base import Chunk
@@ -278,10 +280,8 @@ async def build_vector_store(
 
 async def inspect_retrieval(
     query: str,
-    vector_store: ChromaDBVectorStore,
-    embedding_model: SentenceTransformerEmbeddings,
     top_k: int = RETRIEVER_TOP_K,
-    retriever: Retriever | None = None,
+    retriever=Retriever[ChunkMatch],
 ) -> list[ChunkMatch]:
     """Run semantic retrieval and print the results before the LLM sees anything.
 
@@ -296,9 +296,6 @@ async def inspect_retrieval(
     retrieved from ChromaDB or, after a full store insert, re-fetch them with
     'vector_store.get_chunks_by_embedding(zero_vector, top_k=N)'.
     """
-
-    if retriever is None:
-        retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
     results = await retriever.retrieve(query)
 
     logger.info(f"Retrieval for query: {query!r}")
@@ -314,12 +311,10 @@ async def inspect_retrieval(
 
 
 def build_agent(
-    vector_store: ChromaDBVectorStore,
-    embedding_model: SentenceTransformerEmbeddings,
     llm: LLM,
     top_k: int,
     system_prompt: str,
-    retriever: Retriever | None = None,
+    retriever: Retriever[ChunkMatch],
     number_query_expansion: int = 0,
     enable_hyde: bool = False,
 ) -> RAG:
@@ -330,8 +325,7 @@ def build_agent(
     before generation. Useful for broad or ambiguous questions but adds one
     LLM call per expansion.
     """
-    if retriever is None:
-        retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
+
     agent = RAG(
         llm=llm,
         utility_llm=llm,
