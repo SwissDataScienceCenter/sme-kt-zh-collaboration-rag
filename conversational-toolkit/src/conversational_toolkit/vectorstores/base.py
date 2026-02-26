@@ -58,3 +58,8 @@ class VectorStore(ABC):
     async def get_chunks_by_ids(self, chunk_ids: Union[int, list[int]]) -> list[Chunk]:
         """Fetch specific chunks by their stored IDs."""
         pass
+
+    @abstractmethod
+    async def get_chunks_by_filter(self, filters: dict[str, Any]) -> list[ChunkRecord]:
+        """Return all chunks matching the given metadata filters (no embedding needed)."""
+        pass

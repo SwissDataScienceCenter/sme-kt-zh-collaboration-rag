@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from conversational_toolkit.chunking.base import Chunk
 from conversational_toolkit.utils.database import generate_uid
-from conversational_toolkit.vectorstores.base import VectorStore, ChunkMatch
+from conversational_toolkit.vectorstores.base import VectorStore, ChunkMatch, ChunkRecord
 
 
 class ChromaDBVectorStore(VectorStore):
@@ -76,6 +76,39 @@ class ChromaDBVectorStore(VectorStore):
                 )
 
         return chunk_matches
+
+    async def get_chunks_by_filter(self, filters: dict[str, Any]) -> list[ChunkRecord]:
+        """
+        Return all chunks matching the given metadata filters (no embedding needed).
+
+        Uses ChromaDB's 'collection.get(where=filters)'. Supports ChromaDB filter
+        operators: '$eq', '$ne', '$gt', '$lt', '$gte', '$lte', '$and', '$or'.
+
+        Example — fetch all chunks from a specific file at a given index:
+            filters = {
+                "$and": [
+                    {"source_file": {"$eq": "report.pdf"}},
+                    {"chunk_index": {"$eq": 3}},
+                ]
+            }
+        """
+        results = self.collection.get(where=filters)  # type: ignore[arg-type]
+
+        chunk_records = []
+        if results and results["ids"]:
+            for i in range(len(results["ids"])):
+                metadata = results["metadatas"][i] if results["metadatas"] else {}
+                chunk_records.append(
+                    ChunkRecord(
+                        id=results["ids"][i],
+                        title=str(metadata.get("title", "")),
+                        mime_type=str(metadata.get("mime_type", "")),
+                        content=results["documents"][i] if results["documents"] else "",
+                        metadata=metadata,  # type: ignore
+                        embedding=[],
+                    )
+                )
+        return chunk_records
 
     async def get_chunks_by_ids(self, chunk_ids: int | list[int]) -> list[Chunk]:
         """

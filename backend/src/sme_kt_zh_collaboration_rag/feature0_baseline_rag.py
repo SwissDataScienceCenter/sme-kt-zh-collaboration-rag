@@ -195,7 +195,11 @@ def load_chunks(max_files: int | None = None) -> list[Chunk]:
             else:
                 logger.warning(f"Skipping unsupported file type {ext!r}: {f.name}")
 
-    supported_files = [f for f in all_files if f.suffix.lower() in _CHUNKERS]
+    supported_files = [
+        f
+        for f in all_files
+        if f.suffix.lower() in _CHUNKERS and "EVALUATION" not in f.name
+    ]
     logger.info(f"Chunking {len(supported_files)} files from {DATA_DIR}")
 
     for file_path in supported_files:
@@ -247,13 +251,14 @@ async def build_vector_store(
     'reset=False' (default) to reuse an existing store, embedding all documents
     takes time; skipping it on subsequent runs saves time.
     """
-    if reset and db_path.exists():
-        import shutil
-
-        shutil.rmtree(db_path)
-        logger.info(f"Deleted existing vector store at {db_path}")
-
     vector_store = ChromaDBVectorStore(db_path=str(db_path))
+
+    if reset:
+        vector_store.client.delete_collection(vector_store.collection.name)
+        vector_store.collection = vector_store.client.create_collection(
+            name="default_collection"
+        )
+        logger.info(f"Reset vector store collection at {db_path}")
 
     if not reset and vector_store.collection.count() > 0:
         logger.info(

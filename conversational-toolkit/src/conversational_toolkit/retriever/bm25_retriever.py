@@ -22,8 +22,7 @@ class BM25Retriever(Retriever[ChunkMatch]):
     """
     In-memory BM25 retriever over a fixed corpus of 'ChunkRecord' objects.
 
-    Uses 'rank_bm25.BM25Okapi' under the hood. The corpus is tokenised with a
-    simple word-boundary regex (lowercased) at construction time.
+    Uses 'rank_bm25.BM25Okapi' under the hood. The corpus is tokenised with a simple word-boundary regex (lowercased) at construction time.
 
     Attributes:
         corpus: The indexed document chunks.
