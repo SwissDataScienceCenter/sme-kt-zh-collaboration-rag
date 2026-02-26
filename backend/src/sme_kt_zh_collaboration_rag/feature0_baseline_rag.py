@@ -55,6 +55,7 @@ from conversational_toolkit.llms.base import LLM, LLMMessage
 from conversational_toolkit.llms.local_llm import LocalLLM
 from conversational_toolkit.llms.ollama import OllamaLLM
 from conversational_toolkit.llms.openai import OpenAILLM
+from conversational_toolkit.retriever.base import Retriever
 from conversational_toolkit.retriever.vectorstore_retriever import VectorStoreRetriever
 from conversational_toolkit.vectorstores.base import ChunkMatch
 from conversational_toolkit.vectorstores.chromadb import ChromaDBVectorStore
@@ -280,6 +281,7 @@ async def inspect_retrieval(
     vector_store: ChromaDBVectorStore,
     embedding_model: SentenceTransformerEmbeddings,
     top_k: int = RETRIEVER_TOP_K,
+    retriever: Retriever | None = None,
 ) -> list[ChunkMatch]:
     """Run semantic retrieval and print the results before the LLM sees anything.
 
@@ -294,7 +296,9 @@ async def inspect_retrieval(
     retrieved from ChromaDB or, after a full store insert, re-fetch them with
     'vector_store.get_chunks_by_embedding(zero_vector, top_k=N)'.
     """
-    retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
+
+    if retriever is None:
+        retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
     results = await retriever.retrieve(query)
 
     logger.info(f"Retrieval for query: {query!r}")
@@ -315,6 +319,7 @@ def build_agent(
     llm: LLM,
     top_k: int,
     system_prompt: str,
+    retriever: Retriever | None = None,
     number_query_expansion: int = 0,
     enable_hyde: bool = False,
 ) -> RAG:
@@ -325,7 +330,8 @@ def build_agent(
     before generation. Useful for broad or ambiguous questions but adds one
     LLM call per expansion.
     """
-    retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
+    if retriever is None:
+        retriever = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
     agent = RAG(
         llm=llm,
         utility_llm=llm,
