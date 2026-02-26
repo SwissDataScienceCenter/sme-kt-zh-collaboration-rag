@@ -29,3 +29,8 @@ conversations.json
 messages.json
 reactions.json
 chunks.db/
+
+rag_venv/
+db/
+images_pymupdf4llm/
+images_unstructured_pdf/
