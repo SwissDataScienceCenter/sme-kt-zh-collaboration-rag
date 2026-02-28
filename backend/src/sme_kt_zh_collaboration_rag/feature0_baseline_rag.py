@@ -36,6 +36,7 @@ Usage:
 """
 
 import asyncio
+import hashlib
 import os
 from collections import Counter
 from pathlib import Path
@@ -170,7 +171,21 @@ def build_llm(
             )
 
 
-def load_chunks(max_files: int | None = None) -> list[Chunk]:
+def file_hash(path: Path) -> str:
+    """SHA-256 fingerprint of a file's raw bytes."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def get_existing_hashes(db_path: Path = VS_PATH) -> set[str]:
+    """Return file hashes already present in the vector store."""
+    if not db_path.exists():
+        return set()
+    vs = ChromaDBVectorStore(db_path=str(db_path))
+    result = vs.collection.get(include=["metadatas"])
+    return {m["file_hash"] for m in result["metadatas"] if "file_hash" in m}
+
+
+def load_chunks(max_files: int | None = None, existing_hashes: set[str] | None = None) -> list[Chunk]:
     """Load documents from DATA_DIR and split them into chunks.
 
     Supported formats:
@@ -201,13 +216,22 @@ def load_chunks(max_files: int | None = None) -> list[Chunk]:
     supported_files = [f for f in all_files if f.suffix.lower() in _CHUNKERS]
     logger.info(f"Chunking {len(supported_files)} files from {DATA_DIR}")
 
+    seen_hashes: set[str] = set()
     for file_path in supported_files:
+        hash_value = file_hash(file_path)
+        if existing_hashes is not None and hash_value in existing_hashes:
+            logger.info(f"Skipping {file_path.name!r} — already in store (hash={hash_value[:8]}…)")
+            continue
+        if hash_value in seen_hashes:
+            logger.warning(f"Skipping {file_path.name!r} — duplicate content in current batch (hash={hash_value[:8]}…)")
+            continue
+        seen_hashes.add(hash_value)
         chunker = _CHUNKERS[file_path.suffix.lower()]
         try:
             file_chunks = chunker.make_chunks(str(file_path))
             for chunk in file_chunks:
+                chunk.metadata["file_hash"] = hash_value
                 chunk.metadata["source_file"] = file_path.name
-                # Also store as "source" and "title" so the frontend can display them
                 chunk.metadata["source"] = file_path.name
                 chunk.metadata["title"] = chunk.title
             all_chunks.extend(file_chunks)
@@ -252,25 +276,49 @@ async def build_vector_store(
     """
     if reset and db_path.exists():
         import shutil
-
         shutil.rmtree(db_path)
         logger.info(f"Deleted existing vector store at {db_path}")
 
     vector_store = ChromaDBVectorStore(db_path=str(db_path))
+    
 
-    if not reset and vector_store.collection.count() > 0:
-        logger.info(
-            f"Vector store already contains {vector_store.collection.count()} chunks — skipping embedding."
-        )
+    # Group chunks by file hash for per-file deduplication
+    chunks_by_hash: dict[str, list[Chunk]] = {}
+    for chunk in chunks:
+        h = chunk.metadata.get("file_hash", "unknown")
+        chunks_by_hash.setdefault(h, []).append(chunk)
+
+    # Warn about same-content files in the current batch
+    for hash_value, file_chunks in chunks_by_hash.items():
+        sources = list(dict.fromkeys(c.metadata.get("source_file", "?") for c in file_chunks))
+        if len(sources) > 1:
+            logger.warning(f"Duplicate content detected across files (hash={hash_value[:8]}…): {sources} — only ingesting once.")
+
+    new_chunks: list[Chunk] = []
+    skipped_files = 0
+    skipped_chunks = 0
+    for hash_value, file_chunks in chunks_by_hash.items():
+        existing = vector_store.collection.get(where={"file_hash": hash_value}, limit=1)
+        if existing["ids"]:
+            source = file_chunks[0].metadata.get("source_file", "?")
+            logger.info(f"Skipping {source!r} — already in store (hash={hash_value[:8]}…)")
+            skipped_files += 1
+            skipped_chunks += len(file_chunks)
+        else:
+            new_chunks.extend(file_chunks)
+    logger.info(
+        f"Deduplication: {skipped_files} file(s) / {skipped_chunks} chunk(s) skipped, "
+        f"{len(chunks_by_hash) - skipped_files} file(s) / {len(new_chunks)} chunk(s) to embed."
+    )
+
+    if not new_chunks:
+        logger.info("All files already in store — nothing to embed.")
         return vector_store
 
-    logger.info(
-        f"Embedding {len(chunks)} chunks with {embedding_model.model_name!r} ..."
-    )
-    embeddings = await embedding_model.get_embeddings([c.content for c in chunks])
+    logger.info(f"Embedding {len(new_chunks)} new chunks with {embedding_model.model_name!r} …")
+    embeddings = await embedding_model.get_embeddings([c.content for c in new_chunks])
     logger.info(f"Embedding matrix: shape={embeddings.shape}  dtype={embeddings.dtype}")
-
-    await vector_store.insert_chunks(chunks=chunks, embedding=embeddings)
+    await vector_store.insert_chunks(chunks=new_chunks, embedding=embeddings)
     logger.info(f"Done! Vector store written to {db_path}")
     return vector_store
 
@@ -384,8 +432,9 @@ async def run_pipeline(
         f"backend={backend!r}  model={model_name!r}  max_files={MAX_FILES}  reset_vs={reset_vs}  top_k={RETRIEVER_TOP_K}"
     )
 
-    # Step 1: Chunking
-    chunks = load_chunks(max_files=MAX_FILES)
+    # Step 1: Chunking (skip files already in the store)
+    existing_hashes = get_existing_hashes() if not reset_vs else set()
+    chunks = load_chunks(max_files=MAX_FILES, existing_hashes=existing_hashes)
     inspect_chunks(chunks)
 
     # Step 2: Embedding + vector store
