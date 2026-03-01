@@ -32,3 +32,5 @@ chunks.db/
 
 rag_venv/
 db/
+images_pymupdf4llm/
+images_unstructured_pdf/
