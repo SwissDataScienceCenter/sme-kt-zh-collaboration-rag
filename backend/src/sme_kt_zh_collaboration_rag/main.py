@@ -2,18 +2,14 @@
 Entry point for the SME-KT-ZH Collaboration RAG backend.
 
 Incorporates improvements from the workshop feature tracks:
-  - Feature 2: entity-grounded system prompt (VERIFIED / CLAIMED / MISSING labels,
-    entity-check rule to prevent substituting similar products)
-  - Feature 3a: hybrid retrieval (semantic + BM25 via Reciprocal Rank Fusion),
-    which catches exact-match queries (product IDs, certification codes) that
-    pure semantic search misses
+  - Feature 0b: Docling PDF parser (better layout analysis, catches title pages, superior table extraction)
+  - Feature 2: entity-grounded system prompt (VERIFIED / CLAIMED / MISSING labels, entity-check rule to prevent substituting similar products)
+  - Feature 3a: hybrid retrieval (semantic + BM25 via Reciprocal Rank Fusion), which catches exact-match queries (product IDs, certification codes) that pure semantic search misses
 
 Environment variables:
     BACKEND: LLM backend -> "openai" (default) or "ollama"
     OPENAI_API_KEY: Required when BACKEND=openai
 """
-
-# TODO use docling, openai embedding model
 
 import asyncio
 import os
@@ -42,9 +38,7 @@ from conversational_toolkit.conversation_database.in_memory.source import (
 from conversational_toolkit.conversation_database.in_memory.user import (
     InMemoryUserDatabase,
 )
-from conversational_toolkit.embeddings.sentence_transformer import (
-    SentenceTransformerEmbeddings,
-)
+from conversational_toolkit.embeddings.openai import OpenAIEmbeddings
 from conversational_toolkit.retriever.bm25_retriever import BM25Retriever
 from conversational_toolkit.retriever.hybrid_retriever import HybridRetriever
 from conversational_toolkit.retriever.vectorstore_retriever import VectorStoreRetriever
@@ -62,9 +56,6 @@ from sme_kt_zh_collaboration_rag.feature3_advanced_retrieval import (
     get_corpus_from_vector_store,
 )
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
 
 BACKEND = os.getenv("BACKEND", "openai")
 
@@ -77,9 +68,6 @@ if "OPENAI_API_KEY" not in os.environ and _secret.exists():
 _DB_DIR = Path(__file__).parent / "db"
 _DB_DIR.mkdir(exist_ok=True)
 
-# ---------------------------------------------------------------------------
-# System prompt (Feature 2: entity-grounded to prevent claim laundering)
-# ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = dedent("""
     You are a sustainability compliance assistant for PrimePack AG.
@@ -99,14 +87,10 @@ SYSTEM_PROMPT = dedent("""
     5. Always cite the source document for each claim.
 """).strip()
 
-# ---------------------------------------------------------------------------
-# Build RAG agent and controller
-# ---------------------------------------------------------------------------
-
 
 async def build_controller() -> ConversationalToolkitController:
     logger.info("Loading documents and building vector store...")
-    embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
+    embedding_model = OpenAIEmbeddings(model_name=EMBEDDING_MODEL)
     chunks = load_chunks()
     vector_store = await build_vector_store(
         chunks, embedding_model, db_path=VS_PATH, reset=False
@@ -114,8 +98,6 @@ async def build_controller() -> ConversationalToolkitController:
     logger.info(f"Vector store ready at {VS_PATH}")
 
     # Feature 3a: hybrid retrieval (semantic + BM25 via Reciprocal Rank Fusion).
-    # BM25 catches exact matches (product IDs, certification codes, acronyms) that
-    # semantic search misses. Both signals are fused with RRF at no extra LLM cost.
     logger.info("Building BM25 corpus from vector store...")
     corpus = await get_corpus_from_vector_store(vector_store, embedding_model, n=10_000)
     semantic = VectorStoreRetriever(
@@ -148,13 +130,6 @@ async def build_controller() -> ConversationalToolkitController:
     return controller
 
 
-# ---------------------------------------------------------------------------
-# FastAPI application
-# Build the app at import time so uvicorn can reference `main:app`.
-# The async setup runs inside an asyncio.run() call when started directly.
-# ---------------------------------------------------------------------------
-
-
 def _build_app_sync() -> object:
     """Build the FastAPI app synchronously by running the async setup."""
     controller = asyncio.run(build_controller())
@@ -162,11 +137,6 @@ def _build_app_sync() -> object:
 
 
 app = _build_app_sync()
-
-
-# ---------------------------------------------------------------------------
-# CLI entry point
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -16,6 +16,7 @@ from typing import Any, Sequence
 
 import numpy as np
 from loguru import logger
+from conversational_toolkit.embeddings.openai import OpenAIEmbeddings
 
 from conversational_toolkit.embeddings.sentence_transformer import (
     SentenceTransformerEmbeddings,
@@ -171,7 +172,7 @@ def print_strategy_comparison(
 
 async def get_corpus_from_vector_store(
     vector_store: ChromaDBVectorStore,
-    embedding_model: SentenceTransformerEmbeddings,
+    embedding_model: SentenceTransformerEmbeddings | OpenAIEmbeddings,
     n: int,
 ) -> list[ChunkRecord]:
     """Fetch a representative corpus from the vector store for BM25 indexing.
