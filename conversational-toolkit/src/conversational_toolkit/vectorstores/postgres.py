@@ -119,10 +119,10 @@ class PGVectorStore(VectorStore):
             results = [
                 ChunkMatch(
                     id=chunk.id,
-                    title=chunk.title,
-                    content=chunk.content,
+                    title=chunk.title,  # type: ignore[reportCallIssue]
+                    content=chunk.content,  # type: ignore[reportCallIssue]
                     embedding=chunk.embedding,
-                    mime_type=chunk.mime_type,
+                    mime_type=chunk.mime_type,  # type: ignore[reportCallIssue]
                     score=chunk.score,
                 )
                 for chunk in chunks

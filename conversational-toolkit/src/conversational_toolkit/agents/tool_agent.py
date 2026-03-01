@@ -1,13 +1,7 @@
 """
 ReAct-style tool-calling agent.
 
-'ToolAgent' implements an agentic loop where the LLM may call any of the tools
-attached to 'self.llm.tools'. After each LLM response the agent executes all
-requested tool calls, appends the results to the conversation, and feeds
-everything back to the LLM. The loop continues until the model produces a
-response without tool calls or 'max_steps' is exceeded. Tool results that
-contain a '_sources' key are automatically collected and surfaced in the final
-'AgentAnswer'.
+'ToolAgent' implements an agentic loop where the LLM may call any of the tools attached to 'self.llm.tools'. After each LLM response the agent executes all requested tool calls, appends the results to the conversation, and feeds everything back to the LLM. The loop continues until the model produces a response without tool calls or 'max_steps' is exceeded. Tool results that contain a '_sources' key are automatically collected and surfaced in the final 'AgentAnswer'.
 """
 
 import json
@@ -24,11 +18,7 @@ class ToolAgent(Agent):
     """
     Agent that drives an iterative tool-calling loop (ReAct pattern).
 
-    Tools are registered on 'self.llm' rather than on the agent directly, which
-    keeps the LLM and its callable functions together. Any tool whose response
-    dict contains a '_sources' key will have those sources merged into the
-    streamed 'AgentAnswer', making retrieval tools work transparently within
-    the agentic loop.
+    Tools are registered on 'self.llm' rather than on the agent directly, which keeps the LLM and its callable functions together. Any tool whose response dict contains a '_sources' key will have those sources merged into the streamed 'AgentAnswer', making retrieval tools work transparently within the agentic loop.
     """
 
     async def answer_stream(self, query_with_context: QueryWithContext) -> AsyncGenerator[AgentAnswer, None]:

@@ -68,6 +68,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 RETRIEVER_TOP_K = 5
 SEED = 42
 MAX_FILES = 5
+MAX_FILE_SIZE_MB = 20  # files larger than this are flagged and skipped
 
 SYSTEM_PROMPT = (
     "You are a helpful AI assistant specialised in sustainability and product compliance for PrimePack AG.\n\n"
@@ -206,6 +207,13 @@ def load_chunks(max_files: int | None = None) -> list[Chunk]:
     logger.info(f"Chunking {len(supported_files)} files from {DATA_DIR}")
 
     for file_path in supported_files:
+        size_mb = file_path.stat().st_size / (1024 * 1024)
+        if size_mb > MAX_FILE_SIZE_MB:
+            logger.warning(
+                f"Skipping {file_path.name}: file too large "
+                f"({size_mb:.1f} MB > {MAX_FILE_SIZE_MB} MB limit)"
+            )
+            continue
         chunker = _CHUNKERS[file_path.suffix.lower()]
         try:
             file_chunks = chunker.make_chunks(str(file_path))

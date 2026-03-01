@@ -21,10 +21,7 @@ class CustomizeSentenceTransformer(SentenceTransformer):  # type:ignore
         config_kwargs: dict[str, Any] | None = None,
         has_modules: bool = False,
     ) -> list[Any]:
-        """
-        Creates a simple Transformer + CLS Pooling model and returns the modules.
-        config_kwargs and has_modules are not applicable to Transformer construction and are ignored.
-        """
+        """Creates a simple Transformer + CLS Pooling model and returns the modules. config_kwargs and has_modules are not applicable to Transformer construction and are ignored."""
         combined_model_args = {
             "token": token,
             "trust_remote_code": trust_remote_code,
@@ -57,15 +54,7 @@ class SentenceTransformerEmbeddings(EmbeddingsModel):
         logger.debug(f"Sentence Transformer embeddings model loaded: {model_name} with kwargs: {kwargs}")
 
     async def get_embeddings(self, texts: Union[str, list[str]], **kwargs_encode: Any) -> NDArray[np.float64]:
-        """
-        Encode a string or a list of strings into embeddings using the model.
-
-        Parameters:
-        texts (Union[str, list[str]]): A single string or a list of strings to be encoded.
-
-        Returns:
-        np.ndarray: A numpy array of embeddings.
-        """
+        """Encode a string or a list of strings into embeddings using the model."""
         # Encode the texts using the model
         embedded_chunk = self.model.encode(texts, **kwargs_encode)
 

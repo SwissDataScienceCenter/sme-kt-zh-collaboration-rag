@@ -62,14 +62,14 @@ class ChromaDBVectorStore(VectorStore):
         chunk_matches = []
         if results and results["ids"]:
             for i in range(len(results["ids"][0])):
-                metadata = results["metadatas"][0][i] if results["metadatas"] else {}
+                metadata: dict[str, Any] = dict(results["metadatas"][0][i]) if results["metadatas"] else {}
                 chunk_matches.append(
                     ChunkMatch(
                         id=results["ids"][0][i],
-                        title=str(metadata.get("title", "")),
-                        mime_type=str(metadata.get("mime_type", "")),
-                        metadata=metadata,  # type: ignore
-                        content=results["documents"][0][i] if results["documents"] else "",
+                        title=str(metadata.get("title", "")),  # type: ignore[reportCallIssue]
+                        mime_type=str(metadata.get("mime_type", "")),  # type: ignore[reportCallIssue]
+                        metadata=metadata,
+                        content=results["documents"][0][i] if results["documents"] else "",  # type: ignore[reportCallIssue]
                         embedding=[],
                         score=results["distances"][0][i] if results["distances"] else 0.0,
                     )
@@ -97,14 +97,14 @@ class ChromaDBVectorStore(VectorStore):
         chunk_records = []
         if results and results["ids"]:
             for i in range(len(results["ids"])):
-                metadata = results["metadatas"][i] if results["metadatas"] else {}
+                metadata: dict[str, Any] = dict(results["metadatas"][i]) if results["metadatas"] else {}
                 chunk_records.append(
                     ChunkRecord(
                         id=results["ids"][i],
-                        title=str(metadata.get("title", "")),
-                        mime_type=str(metadata.get("mime_type", "")),
-                        content=results["documents"][i] if results["documents"] else "",
-                        metadata=metadata,  # type: ignore
+                        title=str(metadata.get("title", "")),  # type: ignore[reportCallIssue]
+                        mime_type=str(metadata.get("mime_type", "")),  # type: ignore[reportCallIssue]
+                        content=results["documents"][i] if results["documents"] else "",  # type: ignore[reportCallIssue]
+                        metadata=metadata,
                         embedding=[],
                     )
                 )
@@ -127,13 +127,13 @@ class ChromaDBVectorStore(VectorStore):
         chunks = []
         if results and results["ids"]:
             for i in range(len(results["ids"])):
-                metadata = results["metadatas"][i] if results["metadatas"] else {}
+                metadata: dict[str, Any] = dict(results["metadatas"][i]) if results["metadatas"] else {}
                 chunks.append(
                     Chunk(
                         title=str(metadata.get("title", "")),
                         mime_type=str(metadata.get("mime_type", "")),
                         content=results["documents"][i] if results["documents"] else "",
-                        metadata=metadata,  # type: ignore
+                        metadata=metadata,
                     )
                 )
 

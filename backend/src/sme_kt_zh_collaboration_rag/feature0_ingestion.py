@@ -6,10 +6,7 @@ Explores and compares three chunking strategies:
     2. fixed_size       — Fixed character window with overlap (predictable sizes)
     3. paragraph_aware  — Merge paragraphs until a target size is reached
 
-The embedding model (all-MiniLM-L6-v2) has a 256-token limit. Chunks that exceed
-this are silently truncated — information at the end is lost. Visualising chunk-size
-distributions before embedding exposes this problem and motivates switching to
-models with higher token limits (e.g. OpenAI text-embedding-3-small: 8 191 tokens).
+The embedding model (all-MiniLM-L6-v2) has a 256-token limit. Chunks that exceed this are silently truncated -> information at the end is lost. Visualising chunk-size distributions before embedding exposes this problem and motivates switching to models with higher token limits (e.g. OpenAI text-embedding-3-small: 8 191 tokens).
 """
 
 from dataclasses import dataclass

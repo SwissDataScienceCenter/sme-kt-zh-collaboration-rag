@@ -106,7 +106,7 @@ async def retrieve_with_metadata_filter(
 
     For compound conditions use '$and' / '$or':
         {"$and": [{"source_file": {"$eq": "A.pdf"}},
-                  {"source_file": {"$eq": "B.pdf"}}]}  # never matches — use $or
+                  {"source_file": {"$eq": "B.pdf"}}]} # never matches — use $or
     """
     embedding = await embedding_model.get_embeddings(query)
     chunks = await vector_store.get_chunks_by_embedding(

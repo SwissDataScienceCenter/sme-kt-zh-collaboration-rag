@@ -1,13 +1,9 @@
 """
 BM25 lexical retriever backed by 'rank-bm25'.
 
-'rank-bm25' provides a well-tested BM25 Okapi implementation and several
-variants (BM25L, BM25Plus). The corpus is tokenised and indexed at construction
-time; retrieval is a pure in-memory operation with no I/O cost per query.
+'rank-bm25' provides a well-tested BM25 Okapi implementation and several variants (BM25L, BM25Plus). The corpus is tokenised and indexed at construction time; retrieval is a pure in-memory operation with no I/O cost per query.
 
-Typical usage: initialise from a list of 'ChunkRecord' objects already stored
-in a vector store, then combine with a 'VectorStoreRetriever' inside a
-'HybridRetriever' for lexical + semantic search.
+Typical usage: initialise from a list of 'ChunkRecord' objects already stored in a vector store, then combine with a 'VectorStoreRetriever' inside a 'HybridRetriever' for lexical + semantic search.
 """
 
 import re

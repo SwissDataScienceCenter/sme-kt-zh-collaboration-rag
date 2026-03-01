@@ -65,14 +65,7 @@ class OpenAILLM(LLM):
         )
 
     async def generate(self, conversation: list[LLMMessage]) -> LLMMessage:
-        """
-        Generate a completion for the given conversation.
-        Args:
-            conversation:
-
-        Returns:
-
-        """
+        """Generate a completion for the given conversation."""
         completion = await self.client.chat.completions.create(
             model=self.model,
             messages=[message_to_openai(msg) for msg in conversation],

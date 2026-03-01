@@ -94,7 +94,7 @@ The workshop notebooks require JupyterLab. Start it from the project root after 
 jupyter lab
 ```
 
-JupyterLab opens in your browser at `http://localhost:8888`. Navigate to `backend/notebooks/` in the file browser on the left and open `feature0_baseline_rag.ipynb` to start.
+JupyterLab opens in your browser at `http://localhost:8888`. Navigate to `backend/notebooks/` in the file browser on the left and open `feature0a_baseline_rag.ipynb` to start.
 
 **Running cells:** Use `Shift+Enter` to run a cell and advance to the next one. Run cells top to bottom, each notebook must be executed in order within a session.
 
@@ -109,37 +109,52 @@ jupyter lab
 
 ## Quick Start
 
+**Notebooks (exploration and learning):**
+
 ```bash
-# BACKEND must always be set explicitly — there is no default
+jupyter lab
+# Open backend/notebooks/feature0a_baseline_rag.ipynb to start
+```
 
-# Run with the local Ollama backend
-BACKEND=ollama python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+**Full stack (backend API + frontend):**
 
-# Run with OpenAI
+```bash
+# Start the backend (builds vector store on first run, ~30 s)
+BACKEND=openai python -m sme_kt_zh_collaboration_rag.main
+# or
+BACKEND=ollama python -m sme_kt_zh_collaboration_rag.main
+
+# In a separate terminal, start the frontend
+cd frontend && npm install && npm run dev
+# Open http://localhost:3000
+```
+
+**Single query from the command line:**
+
+```bash
 BACKEND=openai python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
-
-# Custom query
-BACKEND=ollama QUERY="Which tape products have a verified EPD?" python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
-
-# Force rebuild of the vector store
-BACKEND=ollama RESET_VS=1 python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+BACKEND=openai QUERY="Which tape products have a verified EPD?" python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag
+BACKEND=openai RESET_VS=1 python -m sme_kt_zh_collaboration_rag.feature0_baseline_rag  # rebuild vector store
 ```
 
 ---
 
 ## Workshop Feature Tracks
 
-The workshop is structured as six progressive feature tracks, each implemented as a Jupyter notebook in `backend/notebooks/`. They build on one another — start with feature0 and work your way forward.
+The workshop is structured as progressive feature tracks, each implemented as one or more Jupyter notebooks in `backend/notebooks/`. Each notebook is self-contained: it builds the vector store on first run and imports the `conversational_toolkit` library. Run notebooks top to bottom within a session.
 
 | Notebook | Topic | What you learn |
 |----------|-------|----------------|
-| `feature0_baseline_rag.ipynb` | **Baseline RAG Pipeline** | The five-stage RAG loop (chunk → embed → store → retrieve → generate), how retrieval inspection works as a debugging tool, and the three main failure modes the workshop addresses. |
-| `feature1_evaluation.ipynb` | **Evaluation & Validation** | Retrieval metrics (Hit Rate, MRR, Precision@k, Recall@k, NDCG@k); LLM-as-judge scoring for faithfulness and relevance; systematic comparison of retriever configurations using the ground-truth dataset. |
-| `feature2_structured_outputs.ipynb` | **Reliable & Structured Outputs** | Entity-grounding prompts and score-threshold filtering to prevent hallucination; structured JSON outputs with evidence levels (VERIFIED / CLAIMED / MISSING / MIXED); making claim quality machine-readable. |
-| `feature3_advanced_retrieval_strategies.ipynb` | **Query Intelligence** | Six retrieval strategies: baseline, query expansion, HyDE, BM25, hybrid search, and reranking; Reciprocal Rank Fusion (RRF) for merging ranked lists; choosing the right strategy for different query types. |
-| `feature5_agent_workflows.ipynb` | **Multi-step & Agent Workflows** | When single-shot RAG is insufficient; supplier-comparison with two-step retrieval to avoid bias; systematic evidence audits; gap-aware answering that explicitly flags missing or unverified data. |
-
-Each notebook is self-contained: it imports the `conversational_toolkit` library and runs against the documents in `data/`. You do not need to complete previous notebooks to run a later one, though the concepts build progressively.
+| `feature0a_baseline_rag.ipynb` | **Baseline RAG Pipeline** | The five-stage RAG loop (chunk, embed, store, retrieve, generate), how retrieval inspection works as a debugging tool, and the main failure modes the workshop addresses. |
+| `feature0b_ingestion.ipynb` | **Document Ingestion** | PDF parser comparison (pymupdf4llm vs. markitdown vs. docling), chunking strategies (fixed-size, header-based, paragraph-aware), token limits, and how chunking choice affects retrieval quality. |
+| `feature1a_evaluation.ipynb` | **Evaluation & Validation** | Reference-free RAGAS metrics (Faithfulness, AnswerRelevancy); ground-truth metrics (ContextPrecision, ContextRecall); systematic comparison of RAG pipeline configurations. |
+| `feature1b_dataset_creation.ipynb` | **Synthetic Dataset Generation** | Building a validation dataset from vector store content; LLM-generated Q&A pairs; scaling beyond manual ground-truth creation. |
+| `feature2a_structured_outputs.ipynb` | **Structured Outputs** | Entity-grounding prompts to prevent hallucination; structured JSON outputs with evidence levels (VERIFIED / CLAIMED / MISSING / MIXED); making claim quality machine-readable. |
+| `feature3a_advanced_retrieval.ipynb` | **Retrieval Strategies** | BM25 keyword retrieval; hybrid search via Reciprocal Rank Fusion (RRF); metadata filtering to scope retrieval to known documents. |
+| `feature3b_conversation.ipynb` | **Conversational RAG** | Maintaining conversation history; multi-turn context management. |
+| `feature3c_query_techniques.ipynb` | **Query Improvement** | Query expansion and HyDE (Hypothetical Document Embeddings) to improve semantic retrieval. |
+| `feature3d_context_enrichment.ipynb` | **Context Enrichment** | Neighbouring-chunk expansion to handle answers that span chunk boundaries; token budget analysis. |
+| `feature4a_tools.ipynb` – `feature4e_rag_subagent.ipynb` | **Tools & Agents** | LLM tool use; RAG as a tool; multi-step agent workflows; supplier comparison and evidence audit patterns. |
 
 ---
 
@@ -148,15 +163,28 @@ Each notebook is self-contained: it imports the `conversational_toolkit` library
 ```
 .
 ├── backend/                   # RAG pipeline application
-│   ├── notebooks/             # Workshop notebooks (feature0 – feature5)
+│   ├── notebooks/             # Workshop notebooks (feature0a – feature4e)
+│   │   ├── feature0a_baseline_rag.ipynb
+│   │   ├── feature0b_ingestion.ipynb
+│   │   ├── feature1a_evaluation.ipynb
+│   │   ├── feature1b_dataset_creation.ipynb
+│   │   ├── feature2a_structured_outputs.ipynb
+│   │   ├── feature3a_advanced_retrieval.ipynb
+│   │   ├── feature3b_conversation.ipynb
+│   │   ├── feature3c_query_techniques.ipynb
+│   │   ├── feature3d_context_enrichment.ipynb
+│   │   └── feature4a_tools.ipynb – feature4e_rag_subagent.ipynb
 │   └── src/sme_kt_zh_collaboration_rag/
-│       ├── feature0_baseline_rag.py    # Five-step pipeline (chunking → embedding → retrieval → generation)
-│       ├── ...
-│       └── ...
+│       ├── feature0_baseline_rag.py    # Five-step pipeline (chunking, embedding, retrieval, generation)
+│       ├── feature0_ingestion.py       # Parser comparison, chunking utilities, token analysis
+│       ├── feature1_evaluation.py      # Shared evaluation queries and ground-truth answers
+│       ├── feature3_advanced_retrieval.py
+│       └── main.py                     # FastAPI server entry point
 │
 ├── conversational-toolkit/    # Reusable RAG components (toolkit library)
 │   └── src/conversational_toolkit/
 │       ├── agents/            # RAG agent (retrieval + generation)
+│       ├── api/               # FastAPI server and routes
 │       ├── chunking/          # PDF, Excel, Markdown chunkers
 │       ├── embeddings/        # Sentence Transformer embeddings
 │       ├── llms/              # OpenAI, Ollama, local LLM backends
@@ -166,7 +194,7 @@ Each notebook is self-contained: it imports the `conversational_toolkit` library
 │
 ├── data/                      # Document corpus (see below)
 │
-└── frontend/                  # (in development)
+└── frontend/                  # Next.js chat frontend
 ```
 
 ---
@@ -416,5 +444,5 @@ Address comments by pushing additional commits to the same branch, do not open a
 pytest
 
 # Clear notebook outputs (replace with your notebook path)
-jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace backend/notebooks/feature0_baseline_rag.ipynb
+jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace backend/notebooks/feature0a_baseline_rag.ipynb
 ```

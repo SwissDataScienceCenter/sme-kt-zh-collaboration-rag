@@ -1,11 +1,7 @@
 """
 Vector store abstractions and chunk data models.
 
-'Chunk' is the base document unit. 'ChunkRecord' extends it with the storage
-identity ('id') and its embedding vector, representing a chunk as it exists in
-the store. 'ChunkMatch' further extends 'ChunkRecord' with a relevance score
-returned after a similarity search. This three-level hierarchy preserves type
-safety at each stage of the pipeline without duplicating fields.
+'Chunk' is the base document unit. 'ChunkRecord' extends it with the storage identity ('id') and its embedding vector, representing a chunk as it exists in the store. 'ChunkMatch' further extends 'ChunkRecord' with a relevance score returned after a similarity search. This three-level hierarchy preserves type safety at each stage of the pipeline without duplicating fields.
 
 Concrete implementations: 'ChromaDBVectorStore', 'PGVectorStore'.
 """

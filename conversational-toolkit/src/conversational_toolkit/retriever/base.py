@@ -1,10 +1,7 @@
 """
 Retriever abstractions.
 
-A retriever accepts a natural-language query and returns a ranked list of
-document chunks. 'Retriever' is generic over 'T_co' (covariant, bounded by
-'Chunk') so that a 'Retriever[ChunkMatch]' can be assigned where a
-'Retriever[ChunkRecord]' is expected without unsafe casts.
+A retriever accepts a natural-language query and returns a ranked list of document chunks. 'Retriever' is generic over 'T_co' (covariant, bounded by 'Chunk') so that a 'Retriever[ChunkMatch]' can be assigned where a 'Retriever[ChunkRecord]' is expected without unsafe casts.
 
 Concrete implementations: 'VectorStoreRetriever', 'BM25Retriever', 'HybridRetriever',
 'RerankingRetriever'.
@@ -22,9 +19,7 @@ class Retriever(ABC, Generic[T_co]):
     """
     Abstract base class for document retrievers.
 
-    'T_co' is covariant because the retriever only produces values of that type
-    (in the return position of 'retrieve') and never consumes them, which makes
-    the covariant subtyping relationship safe and useful in practice.
+    'T_co' is covariant because the retriever only produces values of that type (in the return position of 'retrieve') and never consumes them, which makes the covariant subtyping relationship safe and useful in practice.
 
     Attributes:
         top_k: Maximum number of chunks to return per query.

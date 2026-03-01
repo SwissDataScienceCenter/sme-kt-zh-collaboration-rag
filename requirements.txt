@@ -1,6 +1,7 @@
 -e ./conversational-toolkit/
 -e ./backend/
 chromadb==1.4.1
+docling==2.75.0
 fastapi==0.115.14
 httpx==0.28.1
 jupyterlab==4.4.10

@@ -1,19 +1,11 @@
 """
 LLM-based reranking retriever.
 
-'RerankingRetriever' is a two-stage retriever: it first fetches a larger
-candidate pool from a base retriever, then asks an LLM to re-order the
-candidates by relevance to the query. This is useful when the base retriever
-(embedding similarity or BM25) retrieves the right documents but ranks them
-suboptimally.
+'RerankingRetriever' is a two-stage retriever: it first fetches a larger candidate pool from a base retriever, then asks an LLM to re-order the candidates by relevance to the query. This is useful when the base retriever (embedding similarity or BM25) retrieves the right documents but ranks them suboptimally.
 
-Design note: configure the base retriever with 'top_k = candidate_pool_size'
-(e.g. 20) and set 'RerankingRetriever.top_k' to the final number you want
-returned (e.g. 5). The two 'top_k' values serve different purposes and are
-intentionally separate.
+Design note: configure the base retriever with 'top_k = candidate_pool_size' (e.g. 20) and set 'RerankingRetriever.top_k' to the final number you want returned (e.g. 5). The two 'top_k' values serve different purposes and are intentionally separate.
 
-If the LLM call fails or returns unparseable JSON the retriever falls back to
-the original ranking from the base retriever, so the pipeline never breaks.
+If the LLM call fails or returns unparseable JSON the retriever falls back to the original ranking from the base retriever, so the pipeline never breaks.
 """
 
 import json
@@ -31,16 +23,11 @@ class RerankingRetriever(Retriever[ChunkMatch]):
     """
     Two-stage retriever that uses an LLM to rerank a candidate pool.
 
-    The base retriever should be configured with a 'top_k' equal to the desired
-    candidate pool size (typically 3-4x the final 'top_k'). The LLM receives
-    the query and truncated chunk contents and returns a ranked list of indices
-    as JSON. The score assigned to each result is a linear decay from 1.0
-    (rank 1) to 0.0 (last rank).
+    The base retriever should be configured with a 'top_k' equal to the desired candidate pool size (typically 3-4x the final 'top_k'). The LLM receives the query and truncated chunk contents and returns a ranked list of indices as JSON. The score assigned to each result is a linear decay from 1.0 (rank 1) to 0.0 (last rank).
 
     Attributes:
         retriever: The base retriever that supplies the candidate pool.
-        llm: The language model used for reranking. A fast, cheap model is
-            recommended since the reranking prompt is simple.
+        llm: The language model used for reranking. A fast, cheap model is recommended since the reranking prompt is simple.
     """
 
     def __init__(self, retriever: Retriever[Any], llm: LLM, top_k: int) -> None:
@@ -76,8 +63,7 @@ class RerankingRetriever(Retriever[ChunkMatch]):
     async def _llm_rerank(self, query: str, candidates: list[ChunkRecord]) -> list[int]:
         """Ask the LLM to rank the candidates and return a list of original indices.
 
-        Returns the original order as a fallback if the LLM call fails or
-        produces invalid JSON.
+        Returns the original order as a fallback if the LLM call fails or produces invalid JSON.
         """
         numbered = "\n\n".join(
             f"[{i}] {chunk.title or '(no title)'}\n{chunk.content[:400]}" for i, chunk in enumerate(candidates)
