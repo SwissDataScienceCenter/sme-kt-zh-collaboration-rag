@@ -19,22 +19,17 @@ class OpenAIEmbeddings(EmbeddingsModel):
         self.model_name = model_name
         logger.debug(f"OpenAI embeddings model loaded: {model_name}")
 
-    async def get_embeddings(self, texts: str | list[str]) -> NDArray[np.float64]:
-        """
-        Retrieves the embedding for the given text(s) using OpenAI.
-
-        Args:
-            texts (Union[str, list[str]]): The input text or list of texts for which the embedding needs to be retrieved.
-
-        Returns:
-            np.ndarray: The embedding vector(s) for the input text(s).
-        """
+    async def get_embeddings(self, texts: str | list[str], batch_size: int = 100) -> NDArray[np.float64]:
+        """Embed one or more texts using OpenAI, batching requests to stay within the token-per-request limit."""
         if isinstance(texts, str):
             texts = [texts]
 
-        response = await self.client.embeddings.create(input=texts, model=self.model_name, dimensions=1024)
-        embeddings = np.asarray([response.data[i].embedding for i in range(len(response.data))])
+        batches = [texts[i : i + batch_size] for i in range(0, len(texts), batch_size)]
+        all_embeddings: list[NDArray[np.float64]] = []
+        for batch in batches:
+            response = await self.client.embeddings.create(input=batch, model=self.model_name, dimensions=1024)
+            all_embeddings.append(np.asarray([d.embedding for d in response.data]))
 
+        embeddings = np.concatenate(all_embeddings, axis=0)
         logger.info(f"OpenAI embeddings shape: {embeddings.shape}")
-
         return embeddings

@@ -96,9 +96,7 @@ def fixed_size_chunks(
     """
     Fixed-size character chunking with overlap.
 
-    Produces predictable chunk sizes regardless of document structure.
-    Overlap preserves context across chunk boundaries.
-    Risk: may cut mid-sentence.
+    Produces predictable chunk sizes regardless of document structure. Overlap preserves context across chunk boundaries. Risk: may cut mid-sentence.
     """
     markdown: str = DocumentConverter().convert(file_path).document.export_to_markdown()
     chunks: list[Chunk] = []
@@ -122,8 +120,7 @@ def fixed_size_chunks(
 
 def paragraph_aware_chunks(file_path: str, target_chars: int = 600) -> list[Chunk]:
     """
-    Paragraph-aware chunking: split on blank lines (\\n\\n), then merge short
-    paragraphs until the target character count is reached.
+    Paragraph-aware chunking: split on blank lines (\\n\\n), then merge short paragraphs until the target character count is reached.
 
     Produces semantically coherent chunks without hard size limits per paragraph.
     """
@@ -164,8 +161,7 @@ def paragraph_aware_chunks(file_path: str, target_chars: int = 600) -> list[Chun
 
 def compare_strategies(file_path: str) -> dict[str, tuple[list[Chunk], ChunkStats]]:
     """
-    Run all three chunking strategies on a single file and return
-    {strategy_name: (chunks, stats)} for inspection and comparison.
+    Run all three chunking strategies on a single file and return {strategy_name: (chunks, stats)} for inspection and comparison.
     """
     logger.info(f"Comparing chunking strategies on: {Path(file_path).name}")
     results: dict[str, tuple[list[Chunk], ChunkStats]] = {}
