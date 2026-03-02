@@ -387,7 +387,12 @@ async def run_pipeline(
     inspect_chunks(chunks)
 
     # Step 2: Embedding + vector store
-    embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
+    embedding_model: SentenceTransformerEmbeddings | OpenAIEmbeddings
+    if "sentence-transformers" in EMBEDDING_MODEL:
+        embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL)
+    else:
+        embedding_model = OpenAIEmbeddings(model_name=EMBEDDING_MODEL)
+
     vector_store = await build_vector_store(chunks, embedding_model, reset=reset_vs)
 
     # Step 3: Inspect retrieval before the LLM is involved
