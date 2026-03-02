@@ -252,11 +252,9 @@ async def build_vector_store(
     embedding_model: SentenceTransformerEmbeddings | OpenAIEmbeddings,
     db_path: Path = VS_PATH,
     reset: bool = False,
+    batch_size: int = 10,
 ) -> ChromaDBVectorStore:
-    """Embed 'chunks' and persist them in a ChromaDB vector store.
-
-    Set 'reset=True' to delete and rebuild the store from scratch. Leave 'reset=False' (default) to reuse an existing store, embedding all documents takes time; skipping it on subsequent runs saves time.
-    """
+    """Embed 'chunks' and persist them in a ChromaDB vector store."""
     vector_store = ChromaDBVectorStore(db_path=str(db_path))
 
     if reset:
@@ -275,10 +273,18 @@ async def build_vector_store(
     logger.info(
         f"Embedding {len(chunks)} chunks with {embedding_model.model_name!r} ..."
     )
-    embeddings = await embedding_model.get_embeddings([c.content for c in chunks])
-    logger.info(f"Embedding matrix: shape={embeddings.shape}  dtype={embeddings.dtype}")
 
-    await vector_store.insert_chunks(chunks=chunks, embedding=embeddings)
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i : i + batch_size]
+        batch_contents = [c.content for c in batch]
+
+        embeddings = await embedding_model.get_embeddings(batch_contents)
+        await vector_store.insert_chunks(chunks=batch, embedding=embeddings)
+
+        logger.info(
+            f"Processed batch {i // batch_size + 1}/{(len(chunks) - 1) // batch_size + 1}"
+        )
+
     logger.info(f"Done! Vector store written to {db_path}")
     return vector_store
 
