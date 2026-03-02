@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from transformers.modeling_outputs import ModelOutput
 
 from conversational_toolkit.chunking.base import Chunk
+from conversational_toolkit.embeddings.base import EmbeddingsModel
 
 
 # --- Minimal "embedding-only" model head (matches the HF repo script idea) ---
@@ -32,7 +33,7 @@ class Qwen3VLForEmbeddingOutput(ModelOutput):
 
 
 class Qwen3VLForEmbedding(Qwen3VLPreTrainedModel):
-    _checkpoint_conversion_mapping = {}
+    _checkpoint_conversion_mapping = {}  # noqa: RUF012
     accepts_loss_kwargs = False
     config: Qwen3VLConfig
 
@@ -83,9 +84,7 @@ class _Qwen3VLEmbedder:
         instruction: str = "Represent the user's input.",
         max_length: int = 8192,
         normalize: bool = True,
-        output_dim: Optional[
-            int
-        ] = None,  # 64..2048 supported by the model (MRL); we slice.
+        output_dim: Optional[int] = None,  # 64..2048 supported by the model (MRL); we slice.
         torch_dtype: Optional[torch.dtype] = None,
         attn_implementation: Optional[str] = None,  # e.g. "flash_attention_2"
         device: Optional[str] = None,
@@ -117,14 +116,10 @@ class _Qwen3VLEmbedder:
         ).to(self.device)
         self.model.eval()
 
-        self.processor = Qwen3VLProcessor.from_pretrained(
-            model_name_or_path, padding_side="right"
-        )
+        self.processor = Qwen3VLProcessor.from_pretrained(model_name_or_path, padding_side="right")
 
     @staticmethod
-    def _pool_last_token(
-        hidden_state: torch.Tensor, attention_mask: torch.Tensor
-    ) -> torch.Tensor:
+    def _pool_last_token(hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         # pick the final "1" position per row in attention_mask
         flipped = attention_mask.flip(dims=[1])
         last_one_from_end = flipped.argmax(dim=1)
@@ -161,9 +156,7 @@ class _Qwen3VLEmbedder:
         ]
 
     def _preprocess(self, conversations: list[list[dict]]) -> dict[str, torch.Tensor]:
-        text = self.processor.apply_chat_template(
-            conversations, add_generation_prompt=True, tokenize=False
-        )
+        text = self.processor.apply_chat_template(conversations, add_generation_prompt=True, tokenize=False)
 
         images, videos, video_kwargs = None, None, {"do_sample_frames": False}
         # Vision parsing (image/video tokens, grids, etc.)
@@ -215,9 +208,7 @@ class _Qwen3VLEmbedder:
         model_inputs = self._preprocess(conversations)
         outputs = self.model(**model_inputs)
 
-        emb = self._pool_last_token(
-            outputs.last_hidden_state, model_inputs["attention_mask"]
-        )
+        emb = self._pool_last_token(outputs.last_hidden_state, model_inputs["attention_mask"])
 
         # Optional Matryoshka slicing (model is trained to support multiple dims)
         od = output_dim if output_dim is not None else self.output_dim
@@ -231,7 +222,7 @@ class _Qwen3VLEmbedder:
 
 
 # --- Your CLIP-like facade ---
-class Qwen3VLEmbeddings:
+class Qwen3VLEmbeddings(EmbeddingsModel):
     # TODO: Update Embedding main class to support images as well, so not inheriting it now.
 
     def __init__(

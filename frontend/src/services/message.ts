@@ -23,6 +23,7 @@ export interface Source {
         origin?: string;
         url?: string;
         header?: string;
+        mime_type?: string;
         [key: string]: string | number | boolean | null | undefined;
     };
 }

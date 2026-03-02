@@ -25,13 +25,13 @@ export const Markdown: FunctionComponent<{ content: string }> = ({ content }) =>
             ],
         ]}
         components={{
-            h1: ({ node, ...props }) => <h1 className="text-3xl font-bold my-4 text-foreground" {...props} />,
-            h2: ({ node, ...props }) => <h2 className="text-2xl font-bold my-3 text-foreground" {...props} />,
-            h3: ({ node, ...props }) => <h3 className="text-xl font-bold my-2 text-foreground" {...props} />,
-            h4: ({ node, ...props }) => <h4 className="text-lg font-semibold my-1 text-foreground" {...props} />,
-            h5: ({ node, ...props }) => <h5 className="text-base font-semibold my-1 text-foreground" {...props} />,
-            h6: ({ node, ...props }) => <h6 className="text-sm font-semibold my-1 text-foreground" {...props} />,
-            p: (pProps) => <p {...pProps} className={cn(pProps.className, "mb-2 leading-relaxed text-foreground")} dir="auto" />,
+            h1: ({ node, ...props }) => <h1 className="text-4xl font-bold mt-8 mb-4 text-foreground border-b pb-2" {...props} />,
+            h2: ({ node, ...props }) => <h2 className="text-3xl font-bold mt-6 mb-3 text-foreground" {...props} />,
+            h3: ({ node, ...props }) => <h3 className="text-2xl font-semibold mt-5 mb-2 text-foreground" {...props} />,
+            h4: ({ node, ...props }) => <h4 className="text-xl font-semibold mt-4 mb-2 text-foreground" {...props} />,
+            h5: ({ node, ...props }) => <h5 className="text-lg font-semibold mt-3 mb-1 text-foreground" {...props} />,
+            h6: ({ node, ...props }) => <h6 className="text-base font-semibold mt-2 mb-1 text-muted-foreground" {...props} />,
+            p: (pProps) => <p {...pProps} className={cn(pProps.className, "mb-4 leading-7 text-foreground")} dir="auto" />,
             a: (aProps) => {
                 const href = aProps.href || "";
                 const isInternal = /^\/#/i.test(href);
@@ -42,7 +42,10 @@ export const Markdown: FunctionComponent<{ content: string }> = ({ content }) =>
                         href={href}
                         target={target}
                         rel="noopener noreferrer"
-                        className={cn(aProps.className, "text-blue-500 hover:text-blue-600 hover:underline")}
+                        className={cn(
+                            aProps.className,
+                            "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline decoration-blue-600/30 hover:decoration-blue-600 transition-colors underline-offset-2",
+                        )}
                     />
                 );
             },
@@ -50,13 +53,13 @@ export const Markdown: FunctionComponent<{ content: string }> = ({ content }) =>
                 const { inline, className: codeClass, children, ...props } = codeProps;
                 if (inline) {
                     return (
-                        <code {...props} className={cn(codeClass, "bg-code-background text-code text-sm p-1 rounded")}>
+                        <code {...props} className={cn(codeClass, "bg-muted text-foreground text-[0.875em] px-1.5 py-0.5 rounded font-mono")}>
                             {children}
                         </code>
                     );
                 } else {
                     return (
-                        <pre className={cn(codeClass, "bg-code-background text-code text-sm p-2 rounded-md overflow-auto my-2")}>
+                        <pre className={cn(codeClass, "bg-muted text-foreground text-sm p-4 rounded-lg overflow-x-auto my-4 border")}>
                             <code {...props} className={codeClass}>
                                 {children}
                             </code>
@@ -65,24 +68,29 @@ export const Markdown: FunctionComponent<{ content: string }> = ({ content }) =>
                 }
             },
             pre: (preProps) => (
-                <pre {...preProps} className={cn(preProps.className, "bg-code-background text-code text-sm p-4 my-4 rounded-md overflow-auto")} />
+                <pre {...preProps} className={cn(preProps.className, "bg-muted text-foreground text-sm p-4 my-4 rounded-lg overflow-x-auto border")} />
             ),
-            blockquote: (bqProps) => <blockquote {...bqProps} className="border-l-4 border-gray-300 pl-4 italic my-4 text-gray-600" />,
-            hr: () => <hr className="my-4 border-t border-border" />,
-            ul: (ulProps) => <ul {...ulProps} className="list-disc list-inside my-2 text-foreground" />,
-            ol: (olProps) => <ol {...olProps} className="list-decimal list-inside my-2 text-foreground" />,
-            li: (liProps) => <li {...liProps} className="ml-4 text-foreground my-1" />,
-            input: ({ node, ...props }) => <input {...props} disabled className="mr-2 cursor-not-allowed" />,
+            blockquote: (bqProps) => (
+                <blockquote {...bqProps} className="border-l-4 border-muted-foreground/30 pl-4 py-1 italic my-4 text-muted-foreground bg-muted/30 rounded-r" />
+            ),
+            hr: () => <hr className="my-8 border-t border-border" />,
+            ul: (ulProps) => <ul {...ulProps} className="list-disc list-outside ml-6 my-3 text-foreground space-y-1" />,
+            ol: (olProps) => <ol {...olProps} className="list-decimal list-outside ml-6 my-3 text-foreground space-y-1" />,
+            li: (liProps) => <li {...liProps} className="text-foreground leading-7 pl-1" />,
+            input: ({ node, ...props }) => <input {...props} disabled className="mr-2 cursor-not-allowed accent-primary" />,
             strong: ({ node, ...props }) => <strong {...props} className="font-semibold text-foreground" />,
             em: ({ node, ...props }) => <em {...props} className="italic text-foreground" />,
-            del: ({ node, ...props }) => <del {...props} className="line-through text-foreground" />,
-            // @ts-ignore
-            table: (tableProps) => <table {...tableProps} className="w-full border-collapse border border-border my-4 text-foreground" />,
-            thead: (theadProps) => <thead {...theadProps} className="bg-background text-foreground" />,
-            tbody: (tbodyProps) => <tbody {...tbodyProps} className="text-foreground" />,
-            tr: (trProps) => <tr {...trProps} className="border border-border" />,
-            th: (thProps) => <th {...thProps} className="border border-border px-3 py-2 font-semibold text-left bg-background" />,
-            td: (tdProps) => <td {...tdProps} className="border border-border px-3 py-2 text-left" />,
+            del: ({ node, ...props }) => <del {...props} className="line-through text-muted-foreground" />,
+            table: (tableProps) => (
+                <div className="my-6 overflow-x-auto">
+                    <table {...tableProps} className="w-full border-collapse border border-border rounded-lg overflow-hidden text-sm" />
+                </div>
+            ),
+            thead: (theadProps) => <thead {...theadProps} className="bg-muted" />,
+            tbody: (tbodyProps) => <tbody {...tbodyProps} className="divide-y divide-border" />,
+            tr: (trProps) => <tr {...trProps} className="border-b border-border last:border-0" />,
+            th: (thProps) => <th {...thProps} className="px-4 py-3 font-semibold text-left text-foreground" />,
+            td: (tdProps) => <td {...tdProps} className="px-4 py-3 text-left text-foreground" />,
         }}
     >
         {content}

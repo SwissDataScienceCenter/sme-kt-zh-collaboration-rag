@@ -4,6 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { QuoteItem } from "@/components/ui/quote-item";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Markdown } from "@/components/ui/markdown";
 
 interface SourceItemProps {
     source: Source;
@@ -19,6 +20,28 @@ export const SourceItem: FunctionComponent<SourceItemProps> = (props: SourceItem
 
     const origin = metadata?.url || metadata?.origin || metadata.source;
     const title = metadata?.title || metadata?.heading || origin || content;
+    const mimeType = metadata.mime_type || "";
+
+    const renderContent = () => {
+        if (mimeType === "image/png") {
+            return (
+                <div className="flex flex-col py-3">
+                    <img src={`data:image/png;base64,${content}`} alt={String(title)} className="max-w-full h-auto" />
+                    {!!origin && (
+                        <div className="pt-1 flex flex-row justify-end italic">
+                            <Markdown content={`- (${origin})`} />
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        if (mimeType === "text/markdown") {
+            return <QuoteItem content={content} origin={origin} />;
+        }
+
+        return <QuoteItem content={content} origin={origin} />;
+    };
 
     return (
         <div className="px-1 py-1">
@@ -39,12 +62,12 @@ export const SourceItem: FunctionComponent<SourceItemProps> = (props: SourceItem
                     </div>
                 </HoverCardTrigger>
                 <HoverCardContent className="hidden md:block md:w-[600px] md:max-h-[400px] overflow-scroll " avoidCollisions={true}>
-                    <QuoteItem content={source.content} origin={origin} />
+                    {renderContent()}
                 </HoverCardContent>
             </HoverCard>
             <Sheet open={isSourceOpen} onOpenChange={(value) => setIsSourceOpen(value)}>
                 <SheetContent className="w-full h-full overflow-scroll py-3 px-8" side={"bottom"}>
-                    <QuoteItem content={source.content} origin={origin} />
+                    {renderContent()}
                 </SheetContent>
             </Sheet>
         </div>

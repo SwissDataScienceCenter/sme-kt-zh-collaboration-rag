@@ -17,6 +17,11 @@ from conversational_toolkit.utils.retriever import (
 )
 from conversational_toolkit.vectorstores.base import ChunkRecord
 
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 class RAG(Agent):
     """

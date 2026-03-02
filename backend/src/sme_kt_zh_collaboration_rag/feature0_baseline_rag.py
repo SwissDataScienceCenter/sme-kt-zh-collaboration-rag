@@ -41,6 +41,8 @@ from collections import Counter
 from pathlib import Path
 
 from loguru import logger
+
+from conversational_toolkit.embeddings.base import EmbeddingsModel
 from conversational_toolkit.embeddings.openai import OpenAIEmbeddings
 
 from conversational_toolkit.agents.base import QueryWithContext
@@ -249,7 +251,7 @@ def inspect_chunks(chunks: list[Chunk], sample_size: int = 5) -> None:
 
 async def build_vector_store(
     chunks: list[Chunk],
-    embedding_model: SentenceTransformerEmbeddings | OpenAIEmbeddings,
+    embedding_model: EmbeddingsModel,
     db_path: Path = VS_PATH,
     reset: bool = False,
     batch_size: int = 10,
@@ -270,15 +272,19 @@ async def build_vector_store(
         )
         return vector_store
 
-    logger.info(
-        f"Embedding {len(chunks)} chunks with {embedding_model.model_name!r} ..."
-    )
+    logger.info(f"Embedding {len(chunks)} chunks with {embedding_model!r} ...")
 
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i : i + batch_size]
-        batch_contents = [c.content for c in batch]
 
-        embeddings = await embedding_model.get_embeddings(batch_contents)
+        # Text embeddings need content strings; multimodal embeddings need Chunk objects
+        if all(c.mime_type.startswith("text") for c in batch):
+            embeddings = await embedding_model.get_embeddings(
+                [c.content for c in batch]
+            )
+        else:
+            embeddings = await embedding_model.get_embeddings(batch)
+
         await vector_store.insert_chunks(chunks=batch, embedding=embeddings)
 
         logger.info(

@@ -26,7 +26,7 @@ class PDFChunker(Chunker):
     def _pdf2markdown(
         self,
         file_path: str,
-        engine: MarkdownConverterEngine = MarkdownConverterEngine.PYMUPDF4LLM,
+        engine: MarkdownConverterEngine = MarkdownConverterEngine.DOCLING,
         write_images: bool = False,
         image_path: str | None = None,
     ) -> str:
@@ -55,12 +55,13 @@ class PDFChunker(Chunker):
     def make_chunks(
         self,
         file_path: str,
-        engine: MarkdownConverterEngine = MarkdownConverterEngine.DOCLING,
-        write_images: bool = False,
-        image_path: str | None = None,
+        engine: MarkdownConverterEngine = MarkdownConverterEngine.PYMUPDF4LLM,
+        write_images: bool = True,
+        image_path: str | None = "./tmp",
     ) -> list[Chunk]:
+        if not os.path.exists(image_path):
+            os.makedirs(image_path)
         markdown = self._pdf2markdown(file_path, engine, write_images=write_images, image_path=image_path)
-
         header_pattern = re.compile(r"^(#{1,6}\s.*)$", re.MULTILINE)
         matches = list(header_pattern.finditer(markdown))
 

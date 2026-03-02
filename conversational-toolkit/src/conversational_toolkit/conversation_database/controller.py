@@ -168,7 +168,7 @@ class ConversationalToolkitController:
                         id="",
                         user_id="",
                         conversation_id=conversation.id,
-                        content=chunk.content,
+                        content=chunk.content[0].text if chunk.content else "",
                         role=Roles.ASSISTANT,
                         sources=[],
                         reaction=None,
@@ -185,7 +185,7 @@ class ConversationalToolkitController:
                     id=generate_uid(),
                     user_id=None,
                     conversation_id=conversation.id,
-                    content=last_chunk.content,
+                    content=chunk.content[0].text if chunk.content else "",
                     role=Roles.ASSISTANT,
                     create_timestamp=get_current_timestamp(),
                     metadata=MetadataProvider.get_metadata(),
@@ -209,7 +209,7 @@ class ConversationalToolkitController:
                         user_id=user_id,
                         create_timestamp=conversation.create_timestamp,
                         update_timestamp=get_current_timestamp(),
-                        title=last_chunk.content[:40],
+                        title=final_message.content[:40],
                     )
                 )
 
