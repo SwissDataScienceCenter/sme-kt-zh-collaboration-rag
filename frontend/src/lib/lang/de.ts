@@ -43,23 +43,23 @@ export const app = {
     suggestions: [
         {
             text: "Wie kann ich die",
-            subtext: "CSRD-Konformität von Lieferanten überprüfen?",
+            subtext: "CSRD-Konformität von Lieferanten prüfen?",
         },
         {
             text: "Welche Arten von",
             subtext: "nachhaltigen Paletten bieten Sie an?",
         },
         {
-            text: "Können Sie Nachweise zur",
-            subtext: "Qualität von Kartonlieferanten erbringen?",
+            text: "Wie hoch ist der",
+            subtext: "Leimanteil im EPF-Karton?",
         },
         {
-            text: "Erzählen Sie mir von",
-            subtext: "umweltfreundlichen Klebebandoptionen.",
+            text: "Wer ist für die",
+            subtext: "Drittverifizierung nach ISO 14025:2006 zuständig?",
         },
         {
             text: "Wie bewerten Sie",
-            subtext: "Nachhaltigkeitsbehauptungen von Lieferanten?",
+            subtext: "Nachhaltigkeitsangaben von Lieferanten?",
         },
     ],
 };

@@ -42,24 +42,24 @@ export const app = {
     },
     suggestions: [
         {
-            text: "Come posso verificare la",
-            subtext: "conformità CSRD dei fornitori?",
+            text: "Come posso verificare",
+            subtext: "la conformità CSRD dei fornitori?",
         },
         {
             text: "Quali tipi di",
             subtext: "pallet sostenibili offrite?",
         },
         {
-            text: "Potete fornire prove di qualità",
-            subtext: "per i fornitori di cartone?",
+            text: "Qual è la percentuale",
+            subtext: "di colla nella scatola di cartone EPF?",
         },
         {
-            text: "Parlami delle opzioni di",
-            subtext: "nastro adesivo ecologico.",
+            text: "Chi è responsabile della",
+            subtext: "verifica di parte terza per ISO 14025:2006?",
         },
         {
-            text: "Come valutate le affermazioni",
-            subtext: "di sostenibilità dei fornitori?",
+            text: "Come valutate le",
+            subtext: "dichiarazioni di sostenibilità dei fornitori?",
         },
     ],
 };

@@ -43,20 +43,20 @@ export const app = {
     },
     suggestions: [
         {
-            text: "Comment puis-je vérifier la",
-            subtext: "conformité CSRD des fournisseurs ?",
+            text: "Comment puis-je vérifier",
+            subtext: "la conformité CSRD des fournisseurs ?",
         },
         {
             text: "Quels types de",
             subtext: "palettes durables proposez-vous ?",
         },
         {
-            text: "Pouvez-vous fournir des preuves",
-            subtext: "de qualité pour les fournisseurs de carton ?",
+            text: "Quel est le pourcentage",
+            subtext: "de colle dans la boîte en carton EPF ?",
         },
         {
-            text: "Parlez-moi des",
-            subtext: "options de ruban adhésif écologique.",
+            text: "Qui est responsable de",
+            subtext: "la vérification tierce pour l'ISO 14025:2006 ?",
         },
         {
             text: "Comment évaluez-vous les",

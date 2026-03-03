@@ -50,12 +50,12 @@ export const app = {
             subtext: "sustainable pallets do you offer?",
         },
         {
-            text: "Can you provide",
-            subtext: "evidence quality for cardboard suppliers?",
+            text: "What is the percentage",
+            subtext: " of glue in the EPF cardboard box?",
         },
         {
-            text: "Tell me about",
-            subtext: "eco-friendly tape options.",
+            text: "Who is responsible for",
+            subtext: " third party verification of ISO 14025:2006?",
         },
         {
             text: "How do you evaluate",
