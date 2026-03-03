@@ -23,7 +23,7 @@ from conversational_toolkit.conversation_database.data_models.message import Mes
 from conversational_toolkit.conversation_database.data_models.reaction import Reaction, ReactionDatabase
 from conversational_toolkit.conversation_database.data_models.source import Source, SourceDatabase
 from conversational_toolkit.conversation_database.data_models.user import User, UserDatabase
-from conversational_toolkit.llms.base import LLMMessage, Roles
+from conversational_toolkit.llms.base import LLMMessage, Roles, MessageContent
 from conversational_toolkit.utils.database import generate_uid
 from conversational_toolkit.utils.metadata_provider import MetadataProvider
 from conversational_toolkit.utils.time import get_current_timestamp
@@ -154,7 +154,7 @@ class ConversationalToolkitController:
                 QueryWithContext(
                     query=input_message.content,
                     history=[
-                        LLMMessage(role=message.role, content=message.content)
+                        LLMMessage(role=message.role, content=[MessageContent(type="text", text=message.content)])
                         for message in sorted(thread, key=lambda m: m.create_timestamp)
                     ],
                 )

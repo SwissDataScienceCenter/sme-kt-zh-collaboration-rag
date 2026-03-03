@@ -28,7 +28,7 @@
         --muted: 0, 0%, 91%;
         --muted-foreground: 120, 5%, 40%;
 
-        --accent: 150, 45%, 25%;
+        --accent: 150, 30%, 80%;
         --accent-foreground: 0, 0%, 100%;
 
         --destructive: 0, 72%, 34%;
@@ -113,6 +113,7 @@
         color: hsl(var(--foreground));
 
     }
+
     .quote:before {
         content: '\201C';
         position: absolute;
@@ -122,6 +123,7 @@
         color: hsl(var(--popover-foreground));
         text-align: center;
     }
+
     .quote:after {
         content: '\201C';
         position: absolute;

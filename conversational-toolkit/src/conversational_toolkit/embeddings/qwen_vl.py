@@ -100,7 +100,7 @@ class _Qwen3VLEmbedder:
         self.max_pixels = max_pixels
 
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
         self.device = torch.device(device)
 
         model_kwargs = {}

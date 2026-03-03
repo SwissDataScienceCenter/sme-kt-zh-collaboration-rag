@@ -2,7 +2,7 @@ import loguru
 from textwrap import dedent
 from typing import Sequence
 
-from conversational_toolkit.llms.base import LLM, LLMMessage, Roles
+from conversational_toolkit.llms.base import LLM, LLMMessage, Roles, MessageContent
 from conversational_toolkit.vectorstores.base import ChunkRecord
 
 
@@ -34,14 +34,23 @@ async def make_query_standalone(llm: LLM, history: list[LLMMessage], query: str)
     conversation = [
         LLMMessage(
             role=Roles.SYSTEM,
-            content="You are a helpful assistant that transforms a message from a user to be independent from the conversation history given.",
+            content=[
+                MessageContent(
+                    type="text",
+                    text="You are a helpful assistant that transforms a message from a user to be independent from the conversation history given.",
+                )
+            ],
         ),
         LLMMessage(
             role=Roles.USER,
-            content=template_query_standalone.format(query=query, chat_history=chat_history),
+            content=[
+                MessageContent(
+                    type="text", text=template_query_standalone.format(query=query, chat_history=chat_history)
+                )
+            ],
         ),
     ]
-    reformulated_query = (await llm.generate(conversation)).content
+    reformulated_query = (await llm.generate(conversation)).content[0].text
 
     loguru.logger.debug(f"Original query: {query}")
     loguru.logger.debug(f"Reformulated query: {reformulated_query}")
@@ -57,15 +66,24 @@ async def query_expansion(query: str, llm: LLM, expansion_number: int = 2) -> li
     conversation = [
         LLMMessage(
             role=Roles.SYSTEM,
-            content="You are a focused assistant designed to generate multiple, relevant search queries based solely on a single input query. Your task is to produce a list of these queries in English, without adding any further explanations or information.",
+            content=[
+                MessageContent(
+                    type="text",
+                    text="You are a focused assistant designed to generate multiple, relevant search queries based solely on a single input query. Your task is to produce a list of these queries in English, without adding any further explanations or information.",
+                )
+            ],
         ),
         LLMMessage(
             role=Roles.USER,
-            content=template_query_expansion.format(query=query, expansion_number=expansion_number),
+            content=[
+                MessageContent(
+                    type="text", text=template_query_expansion.format(query=query, expansion_number=expansion_number)
+                )
+            ],
         ),
     ]
 
-    generated_queries = (await llm.generate(conversation)).content.strip().split("\n")
+    generated_queries = (await llm.generate(conversation)).content[0].text.strip().split("\n")
 
     loguru.logger.debug(f"Original query for expansion: {query}")
     for i, generated_query in enumerate(generated_queries, start=1):
@@ -78,11 +96,16 @@ async def hyde_expansion(query: str, llm: LLM) -> str:
     conversation = [
         LLMMessage(
             role=Roles.SYSTEM,
-            content="You are a helpful assistant. Provide an example of answer to the provided query. Only output an hypothetical explanation to the query. Concise, only a few sentences, without any introduction or conclusion.",
+            content=[
+                MessageContent(
+                    type="text",
+                    text="You are a helpful assistant. Provide an example of answer to the provided query. Only output an hypothetical explanation to the query. Concise, only a few sentences, without any introduction or conclusion.",
+                )
+            ],
         ),
-        LLMMessage(role=Roles.USER, content=query),
+        LLMMessage(role=Roles.USER, content=[MessageContent(type="text", text=query)]),
     ]
-    hyde_expansion_message = (await llm.generate(conversation)).content
+    hyde_expansion_message = (await llm.generate(conversation)).content[0].text
 
     loguru.logger.debug(f"Original query for HyDE expansion: {query}")
     loguru.logger.debug(f"HyDE expansion: {hyde_expansion_message}")
