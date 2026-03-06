@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Based on Green/Brown branding */
+        --background: 0, 0%, 97%;
+        --foreground: 120, 15%, 15%;
+
+        --card: 0, 0%, 100%;
+        --card-foreground: 120, 15%, 15%;
+
+        --popover: 0, 0%, 100%;
+        --popover-foreground: 120, 15%, 15%;
+
+        --code: 120, 15%, 15%;
+        --code-background: 0, 0%, 92%;
+
+        /* Primary: Dark Green */
+        --primary: 150, 45%, 25%;
+        --primary-foreground: 0, 0%, 100%;
+
+        /* Secondary: Earthy Brown/Tan */
+        --secondary: 35, 30%, 55%;
+        --secondary-foreground: 0, 0%, 100%;
+
+        --muted: 0, 0%, 91%;
+        --muted-foreground: 120, 5%, 40%;
+
+        --accent: 150, 30%, 80%;
+        --accent-foreground: 0, 0%, 100%;
+
+        --destructive: 0, 72%, 34%;
+        --destructive-foreground: 0, 0%, 100%;
+
+        --border: 0, 0%, 85%;
+        --input: 0, 0%, 100%;
+        --ring: 150, 45%, 25%;
+        --ripple: 150, 45%, 25%;
+
+        --radius: 0.5rem;
+    }
+
+    .dark {
+        --background: 120, 15%, 10%;
+        --foreground: 0, 0%, 95%;
+
+        --card: 120, 15%, 15%;
+        --card-foreground: 0, 0%, 95%;
+
+        --popover: 120, 15%, 15%;
+        --popover-foreground: 0, 0%, 95%;
+
+        --code: 0, 0%, 95%;
+        --code-background: 120, 15%, 10%;
+
+        /* Primary: Lighter Green for Dark Mode */
+        --primary: 150, 45%, 40%;
+        --primary-foreground: 0, 0%, 100%;
+
+        /* Secondary: Brighter Tan for Dark Mode */
+        --secondary: 35, 40%, 65%;
+        --secondary-foreground: 0, 0%, 10%;
+
+        --muted: 120, 15%, 20%;
+        --muted-foreground: 0, 0%, 70%;
+
+        --accent: 150, 45%, 40%;
+        --accent-foreground: 0, 0%, 100%;
+
+        --destructive: 0, 72%, 45%;
+        --destructive-foreground: 0, 0%, 100%;
+
+        --border: 120, 15%, 25%;
+        --input: 120, 15%, 15%;
+        --ring: 150, 45%, 40%;
+        --ripple: 150, 45%, 40%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body, main {
+        @apply bg-background text-foreground;
+    }
+}
+
+@layer components {
+    .ripple {
+        @apply bg-center transition-all duration-300 ease-in-out cursor-pointer;
+    }
+
+    .ripple:hover {
+        background: hsla(var(--ripple), 0.05) radial-gradient(circle, transparent 1%, hsla(var(--ripple), 0.05) 1%) center/15000%;
+    }
+
+    .ripple:active {
+        background-color: hsla(var(--ripple), 0.05);
+        background-size: 100%;
+        transition: background 0s;
+    }
+
+    .quote {
+        display: block;
+        padding: 1.5rem;
+        text-align: justify;
+        text-justify: inter-word;
+        position: relative;
+        color: hsl(var(--foreground));
+
+    }
+
+    .quote:before {
+        content: '\201C';
+        position: absolute;
+        top: 0;
+        left: 0;
+        font: 6em/1.08em 'PT Sans', sans-serif;
+        color: hsl(var(--popover-foreground));
+        text-align: center;
+    }
+
+    .quote:after {
+        content: '\201C';
+        position: absolute;
+        transform: rotate(180deg);
+        bottom: 0;
+        right: 0;
+        font: 6em/1.08em 'PT Sans', sans-serif;
+        color: hsl(var(--popover-foreground));
+        text-align: center;
+    }
+
+    .blink {
+        animation: blinker 1.5s linear infinite;
+    }
+
+    @keyframes blinker {
+        20% {
+            opacity: 1;
+        }
+        40% {
+            opacity: 0;
+        }
+        80% {
+            opacity: 1;
+        }
+
+    }
+}

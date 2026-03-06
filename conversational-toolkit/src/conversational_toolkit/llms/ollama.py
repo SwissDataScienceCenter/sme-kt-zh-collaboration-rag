@@ -5,7 +5,7 @@ from typing import Any, Literal
 from loguru import logger
 from ollama import AsyncClient, ChatResponse
 
-from conversational_toolkit.llms.base import LLM, LLMMessage, ToolCall, Roles, Function
+from conversational_toolkit.llms.base import LLM, LLMMessage, ToolCall, Roles, Function, MessageContent
 from conversational_toolkit.tools.base import Tool
 from conversational_toolkit.utils.metadata_provider import MetadataProvider
 
@@ -13,8 +13,16 @@ from conversational_toolkit.utils.metadata_provider import MetadataProvider
 def message_to_ollama(msg: LLMMessage) -> dict[str, Any]:
     message: dict[str, Any] = {
         "role": msg.role,
-        "content": msg.content,
     }
+
+    # Convert MessageContent list to Ollama format
+    if len(msg.content) == 1 and msg.content[0].type == "text":
+        message["content"] = msg.content[0].text or ""
+    else:
+        message["content"] = [
+            {"type": c.type, "text": c.text} if c.type == "text" else {"type": "image_url", "image_url": c.image_url}
+            for c in msg.content
+        ]
 
     if msg.name:
         message["name"] = msg.name
@@ -23,7 +31,7 @@ def message_to_ollama(msg: LLMMessage) -> dict[str, Any]:
         message["tool_call_id"] = msg.tool_call_id
 
     if msg.role == Roles.ASSISTANT and msg.tool_calls:
-        message["tool_calls"] = [  # type: ignore[assignment]
+        message["tool_calls"] = [
             {
                 "id": tc.id,
                 "type": tc.type,
@@ -62,8 +70,7 @@ class OllamaLLM(LLM):
         )
 
     async def generate(self, conversation: list[LLMMessage]) -> LLMMessage:
-        """Generate a completion for the given conversation."""
-        completion: ChatResponse = await self.client.chat(  # type: ignore[call-overload]
+        completion: ChatResponse = await self.client.chat(
             model=self.model,
             messages=[message_to_ollama(msg) for msg in conversation],
             format=self.response_format,
@@ -72,7 +79,7 @@ class OllamaLLM(LLM):
         )
         logger.debug(f"Completion: {completion}")
         return LLMMessage(
-            content=completion.message.content or "",
+            content=[MessageContent(type="text", text=completion.message.content or "")],
             role=Roles(completion.message.role),
             tool_calls=[
                 ToolCall(
@@ -90,7 +97,7 @@ class OllamaLLM(LLM):
         )
 
     async def generate_stream(self, conversation: list[LLMMessage]) -> AsyncGenerator[LLMMessage, None]:
-        response: AsyncIterator[ChatResponse] = await self.client.chat(  # type: ignore[call-overload]
+        response: AsyncIterator[ChatResponse] = await self.client.chat(
             model=self.model,
             messages=[message_to_ollama(msg) for msg in conversation],
             format=self.response_format,
@@ -104,11 +111,12 @@ class OllamaLLM(LLM):
             logger.trace(chunk)
             last_chunk = chunk
             if chunk.message.content:
-                yield LLMMessage(content=chunk.message.content)
+                yield LLMMessage(content=[MessageContent(type="text", text=chunk.message.content)])
             if chunk.message.tool_calls:
                 for index, tool_call in enumerate(chunk.message.tool_calls):
                     if index > last_tool_call_sent:
                         yield LLMMessage(
+                            content=[],
                             tool_calls=[
                                 ToolCall(
                                     id=str(index),
@@ -118,7 +126,7 @@ class OllamaLLM(LLM):
                                     ),
                                     type="function",
                                 )
-                            ]
+                            ],
                         )
                         last_tool_call_sent = index
 

@@ -11,7 +11,7 @@ import re
 from rank_bm25 import BM25Okapi  # type: ignore[import-untyped]
 
 from conversational_toolkit.retriever.base import Retriever
-from conversational_toolkit.vectorstores.base import ChunkMatch, ChunkRecord
+from conversational_toolkit.vectorstores.base import ChunkMatch, VectorStore
 
 
 class BM25Retriever(Retriever[ChunkMatch]):
@@ -24,11 +24,12 @@ class BM25Retriever(Retriever[ChunkMatch]):
         corpus: The indexed document chunks.
     """
 
-    def __init__(self, corpus: list[ChunkRecord], top_k: int) -> None:
+    def __init__(self, vector_store: VectorStore, top_k: int) -> None:
         super().__init__(top_k)
-        self.corpus = corpus
-        tokenized = [self._tokenize(chunk.content) for chunk in corpus]
-        self._bm25 = BM25Okapi(tokenized)
+        self.vs = vector_store
+        self.corpus = ([],)
+        self.tokenized = []
+        self._bm25 = None
 
     @staticmethod
     def _tokenize(text: str) -> list[str]:
@@ -37,6 +38,11 @@ class BM25Retriever(Retriever[ChunkMatch]):
 
     async def retrieve(self, query: str) -> list[ChunkMatch]:
         """Score the corpus against 'query' using BM25 and return the top 'top_k' matches."""
+        if self._bm25 is None:
+            self.corpus = await self.vs.get_chunks_by_filter()
+            tokenized = [self._tokenize(chunk.content) for chunk in self.corpus]
+            self._bm25 = BM25Okapi(tokenized)
+
         query_terms = self._tokenize(query)
         scores: list[float] = self._bm25.get_scores(query_terms).tolist()
         top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[: self.top_k]

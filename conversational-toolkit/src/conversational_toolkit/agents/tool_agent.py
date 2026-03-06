@@ -11,7 +11,7 @@ from loguru import logger
 
 from conversational_toolkit.agents.base import Agent, QueryWithContext, AgentAnswer
 from conversational_toolkit.chunking.base import Chunk
-from conversational_toolkit.llms.base import Roles, LLMMessage, ToolCall
+from conversational_toolkit.llms.base import Roles, LLMMessage, ToolCall, MessageContent
 
 
 class ToolAgent(Agent):
@@ -25,9 +25,9 @@ class ToolAgent(Agent):
         steps = []
         sources: list[Chunk] = []
         messages = [
-            LLMMessage(role=Roles.SYSTEM, content=self.system_prompt),
+            LLMMessage(role=Roles.SYSTEM, content=[MessageContent(type="text", text=self.system_prompt)]),
             *query_with_context.history,
-            LLMMessage(role=Roles.USER, content=query_with_context.query),
+            LLMMessage(role=Roles.USER, content=[MessageContent(type="text", text=query_with_context.query)]),
         ]
 
         while True:
@@ -36,9 +36,13 @@ class ToolAgent(Agent):
             response_stream = self.llm.generate_stream(messages)
             async for response_chunk in response_stream:
                 if response_chunk.content:
-                    content += response_chunk.content
+                    content += response_chunk.content[0].text or ""
                     answer = await self._answer_post_processing(
-                        AgentAnswer(content=content, role=Roles.ASSISTANT, sources=sources.copy())
+                        AgentAnswer(
+                            content=[MessageContent(type="text", text=content)],
+                            role=Roles.ASSISTANT,
+                            sources=sources.copy(),
+                        )
                     )
                     if answer:
                         yield answer
@@ -56,7 +60,7 @@ class ToolAgent(Agent):
             messages.append(
                 LLMMessage(
                     role=Roles.ASSISTANT,
-                    content=content,
+                    content=[MessageContent(type="text", text=content)],
                     tool_calls=tool_calls,
                 )
             )
@@ -90,7 +94,10 @@ class ToolAgent(Agent):
 
             if len(steps) > self.max_steps:
                 # TODO: Maybe throw an exception here?
-                yield AgentAnswer(content="Request is too complex to execute", role=Roles.ASSISTANT)
+                yield AgentAnswer(
+                    content=[MessageContent(type="text", text="Request is too complex to execute")],
+                    role=Roles.ASSISTANT,
+                )
                 break
 
         logger.debug(steps)

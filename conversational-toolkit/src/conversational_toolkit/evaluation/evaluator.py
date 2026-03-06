@@ -74,7 +74,7 @@ class Evaluator:
             samples.append(
                 EvaluationSample(
                     query=query,
-                    answer=answer.content,
+                    answer=answer.content[0].text,
                     retrieved_chunks=cast(list[ChunkRecord], list(answer.sources)),
                     history=list(history),
                     relevant_chunk_ids=relevant_chunk_ids[i] if relevant_chunk_ids else set(),

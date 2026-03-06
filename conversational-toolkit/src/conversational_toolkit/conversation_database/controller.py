@@ -23,7 +23,7 @@ from conversational_toolkit.conversation_database.data_models.message import Mes
 from conversational_toolkit.conversation_database.data_models.reaction import Reaction, ReactionDatabase
 from conversational_toolkit.conversation_database.data_models.source import Source, SourceDatabase
 from conversational_toolkit.conversation_database.data_models.user import User, UserDatabase
-from conversational_toolkit.llms.base import LLMMessage, Roles
+from conversational_toolkit.llms.base import LLMMessage, Roles, MessageContent
 from conversational_toolkit.utils.database import generate_uid
 from conversational_toolkit.utils.metadata_provider import MetadataProvider
 from conversational_toolkit.utils.time import get_current_timestamp
@@ -154,7 +154,7 @@ class ConversationalToolkitController:
                 QueryWithContext(
                     query=input_message.content,
                     history=[
-                        LLMMessage(role=message.role, content=message.content)
+                        LLMMessage(role=message.role, content=[MessageContent(type="text", text=message.content)])
                         for message in sorted(thread, key=lambda m: m.create_timestamp)
                     ],
                 )
@@ -168,7 +168,7 @@ class ConversationalToolkitController:
                         id="",
                         user_id="",
                         conversation_id=conversation.id,
-                        content=chunk.content,
+                        content=chunk.content[0].text if chunk.content else "",
                         role=Roles.ASSISTANT,
                         sources=[],
                         reaction=None,
@@ -185,7 +185,7 @@ class ConversationalToolkitController:
                     id=generate_uid(),
                     user_id=None,
                     conversation_id=conversation.id,
-                    content=last_chunk.content,
+                    content=chunk.content[0].text if chunk.content else "",
                     role=Roles.ASSISTANT,
                     create_timestamp=get_current_timestamp(),
                     metadata=MetadataProvider.get_metadata(),
@@ -209,7 +209,7 @@ class ConversationalToolkitController:
                         user_id=user_id,
                         create_timestamp=conversation.create_timestamp,
                         update_timestamp=get_current_timestamp(),
-                        title=last_chunk.content[:40],
+                        title=final_message.content[:40],
                     )
                 )
 

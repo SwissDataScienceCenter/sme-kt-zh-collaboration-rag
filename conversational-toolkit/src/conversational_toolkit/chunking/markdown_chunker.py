@@ -12,7 +12,7 @@ class MarkdownChunker(PDFChunker):
     def _pdf2markdown(
         self,
         file_path: str,
-        engine: MarkdownConverterEngine = MarkdownConverterEngine.PYMUPDF4LLM,
+        engine: MarkdownConverterEngine = MarkdownConverterEngine.DOCLING,
         write_images: bool = False,
         image_path: str | None = None,
     ) -> str:

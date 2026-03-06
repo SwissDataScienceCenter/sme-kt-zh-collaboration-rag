@@ -8,7 +8,7 @@ import json
 from typing import AsyncGenerator
 
 from conversational_toolkit.agents.base import Agent, QueryWithContext, AgentAnswer
-from conversational_toolkit.llms.base import LLM, LLMMessage, Roles
+from conversational_toolkit.llms.base import LLM, LLMMessage, Roles, MessageContent
 
 
 class Router(Agent):
@@ -45,12 +45,12 @@ class Router(Agent):
     async def _get_agent(self, query_with_context: QueryWithContext) -> Agent:
         routing = await self.llm.generate(
             [
-                LLMMessage(role=Roles.SYSTEM, content=self.system_prompt),
+                LLMMessage(role=Roles.SYSTEM, content=[MessageContent(text=self.system_prompt, type="text")]),
                 *query_with_context.history,
-                LLMMessage(role=Roles.USER, content=query_with_context.query),
+                LLMMessage(role=Roles.USER, content=[MessageContent(text=query_with_context.query, type="text")]),
             ]
         )
-        category = json.loads(routing.content)["category"]
+        category = json.loads(routing.content[0].text)["category"]
         return self.agent_mapping[category]
 
     async def answer_stream(self, query_with_context: QueryWithContext) -> AsyncGenerator[AgentAnswer, None]:

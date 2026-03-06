@@ -1,6 +1,7 @@
 # Backend RAG Pipeline
 
-This package (`sme_kt_zh_collaboration_rag`) contains the notebooks and the supporting Python modules that run the RAG pipeline for the PrimePack AG sustainability use case.
+This package (`sme_kt_zh_collaboration_rag`) contains the notebooks and the supporting Python modules that run the RAG pipeline for the PrimePack AG
+sustainability use case.
 
 ---
 
@@ -35,19 +36,19 @@ backend/
 
 Introduces the five-stage RAG loop and demonstrates it end-to-end against the PrimePack AG corpus.
 
-| Step | Function | What it does |
-|------|----------|--------------|
-| 1 | `load_chunks()` | Load all documents from `data/` and split into chunks (skips files > 20 MB) |
-| 2 | `build_vector_store()` | Embed chunks and persist to ChromaDB |
-| 3 | `inspect_retrieval()` | Run a semantic search and print ranked results |
-| 4 | `build_agent()` | Assemble the RAG agent from the retriever and an LLM backend |
-| 5 | `ask()` | Send a query and stream the grounded answer |
+| Step | Function               | What it does                                                                |
+|------|------------------------|-----------------------------------------------------------------------------|
+| 1    | `load_chunks()`        | Load all documents from `data/` and split into chunks (skips files > 20 MB) |
+| 2    | `build_vector_store()` | Embed chunks and persist to ChromaDB                                        |
+| 3    | `inspect_retrieval()`  | Run a semantic search and print ranked results                              |
+| 4    | `build_agent()`        | Assemble the RAG agent from the retriever and an LLM backend                |
+| 5    | `ask()`                | Send a query and stream the grounded answer                                 |
 
 ### Feature 0b: Document Ingestion (`feature0b_ingestion.ipynb`)
 
 Deep-dive into document parsing and chunking — separate from the baseline so the ingestion workflow can be explored independently.
 
-- PDF parser comparison: pymupdf4llm vs. markitdown vs. docling
+- PDF parser comparison: markitdown vs. docling
 - Chunking strategies: fixed-size, header-based, paragraph-aware
 - Token limit: embedding model truncates at 256 tokens
 - Retrieval impact of chunking strategy choices
@@ -152,9 +153,9 @@ The vector store is written to `backend/data_vs.db`. On subsequent runs, re-embe
 
 ## LLM backends
 
-| Backend | Environment variable | Default model |
-|---------|---------------------|---------------|
-| `openai` | `OPENAI_API_KEY` | `gpt-4o-mini` |
-| `ollama` | — | `mistral-nemo:12b` |
+| Backend  | Environment variable | Default model      |
+|----------|----------------------|--------------------|
+| `openai` | `OPENAI_API_KEY`     | `gpt-4o-mini`      |
+| `ollama` | —                    | `mistral-nemo:12b` |
 
 Set `BACKEND=<name>` and optionally `MODEL=<model-name>` as environment variables before running any feature module.

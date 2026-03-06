@@ -19,16 +19,15 @@ dependencies = [
     "numpy==2.3.3",
     "ollama==0.6.1",
     "openai==2.21.0",
-    "pymupdf4llm==0.3.4",
     "sentence-transformers==5.1.1",
 ]
 dynamic = ["version"]
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.dynamic]
-version = {attr = "sme_kt_zh_collaboration_rag.__version__"}
+version = { attr = "sme_kt_zh_collaboration_rag.__version__" }

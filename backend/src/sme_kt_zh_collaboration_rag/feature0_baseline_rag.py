@@ -41,6 +41,8 @@ from collections import Counter
 from pathlib import Path
 
 from loguru import logger
+
+from conversational_toolkit.embeddings.base import EmbeddingsModel
 from conversational_toolkit.embeddings.openai import OpenAIEmbeddings
 
 from conversational_toolkit.agents.base import QueryWithContext
@@ -176,7 +178,7 @@ def load_chunks(max_files: int | None = None) -> list[Chunk]:
     """Load documents from DATA_DIR and split them into chunks.
 
     Supported formats:
-        .pdf: converted to Markdown via pymupdf4llm, split on headings
+        .pdf: converted to Markdown, split on headings
         .xlsx, .xls: one chunk per sheet (Markdown table)
 
     Unsupported formats (e.g. standalone images) are logged as warnings and skipped. Images embedded inside PDFs are not extracted as text by default!
@@ -249,14 +251,12 @@ def inspect_chunks(chunks: list[Chunk], sample_size: int = 5) -> None:
 
 async def build_vector_store(
     chunks: list[Chunk],
-    embedding_model: SentenceTransformerEmbeddings | OpenAIEmbeddings,
+    embedding_model: EmbeddingsModel,
     db_path: Path = VS_PATH,
     reset: bool = False,
+    batch_size: int = 10,
 ) -> ChromaDBVectorStore:
-    """Embed 'chunks' and persist them in a ChromaDB vector store.
-
-    Set 'reset=True' to delete and rebuild the store from scratch. Leave 'reset=False' (default) to reuse an existing store, embedding all documents takes time; skipping it on subsequent runs saves time.
-    """
+    """Embed 'chunks' and persist them in a ChromaDB vector store."""
     vector_store = ChromaDBVectorStore(db_path=str(db_path))
 
     if reset:
@@ -272,13 +272,25 @@ async def build_vector_store(
         )
         return vector_store
 
-    logger.info(
-        f"Embedding {len(chunks)} chunks with {embedding_model.model_name!r} ..."
-    )
-    embeddings = await embedding_model.get_embeddings([c.content for c in chunks])
-    logger.info(f"Embedding matrix: shape={embeddings.shape}  dtype={embeddings.dtype}")
+    logger.info(f"Embedding {len(chunks)} chunks with {embedding_model!r} ...")
 
-    await vector_store.insert_chunks(chunks=chunks, embedding=embeddings)
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i : i + batch_size]
+
+        # Text embeddings need content strings; multimodal embeddings need Chunk objects
+        if all(c.mime_type.startswith("text") for c in batch):
+            embeddings = await embedding_model.get_embeddings(
+                [c.content for c in batch]
+            )
+        else:
+            embeddings = await embedding_model.get_embeddings(batch)
+
+        await vector_store.insert_chunks(chunks=batch, embedding=embeddings)
+
+        logger.info(
+            f"Processed batch {i // batch_size + 1}/{(len(chunks) - 1) // batch_size + 1}"
+        )
+
     logger.info(f"Done! Vector store written to {db_path}")
     return vector_store
 

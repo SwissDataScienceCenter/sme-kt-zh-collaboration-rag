@@ -7,10 +7,9 @@ Retrieval-Augmented Generation (RAG) agent.
 from typing import Any, AsyncGenerator
 
 from conversational_toolkit.agents.base import Agent, AgentAnswer, QueryWithContext
-from conversational_toolkit.llms.base import LLM, LLMMessage, Roles
+from conversational_toolkit.llms.base import LLM, LLMMessage, Roles, MessageContent
 from conversational_toolkit.retriever.base import Retriever
 from conversational_toolkit.utils.retriever import (
-    build_query_with_chunks,
     make_query_standalone,
     query_expansion,
     reciprocal_rank_fusion,
@@ -18,10 +17,19 @@ from conversational_toolkit.utils.retriever import (
 )
 from conversational_toolkit.vectorstores.base import ChunkRecord
 
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 class RAG(Agent):
     """
     RAG agent that retrieves document chunks before generating an answer.
+
+    # TODO: Currently only outputs text
+    # TODO: Forced to give images as user role
+    # TODO: Remove their concept of sources in their format XML
 
     Attributes:
         utility_llm: A (typically cheaper) LLM used for query rewriting and expansion. Kept separate so a fast model can handle preprocessing while a more capable model handles generation.
@@ -47,7 +55,7 @@ class RAG(Agent):
         self.number_query_expansion = number_query_expansion
         self.enable_hyde = enable_hyde
 
-    async def answer_stream(self, query_with_context: QueryWithContext) -> AsyncGenerator[AgentAnswer, None]:
+    async def answer_stream(self, query_with_context: QueryWithContext) -> AsyncGenerator[AgentAnswer, None]:  # noqa: PLR0912
         query = query_with_context.query
         history = query_with_context.history
 
@@ -70,20 +78,72 @@ class RAG(Agent):
             if retrieved:
                 sources += reciprocal_rank_fusion(retrieved)[: retriever.top_k]
 
+        sources_list = []
+
+        for source in sources:
+            if "text" in source.mime_type:
+                sources_as_message = LLMMessage(role=Roles.USER, content=[])
+                sources_as_message.content.append(
+                    MessageContent(
+                        type="text",
+                        text=f"<source id='{source.id}'>{source.content}</source>",
+                    )
+                )
+                sources_list.append(sources_as_message)
+
+            elif "image" in source.mime_type:
+                sources_as_message = LLMMessage(role=Roles.USER, content=[])
+                sources_as_message.content.append(
+                    MessageContent(
+                        type="text",
+                        text=f"<source id='{source.id}' type='image'>",
+                    )
+                )
+                sources_as_message.content.append(
+                    MessageContent(
+                        type="image",
+                        image_url=source.content,
+                    )
+                )
+                sources_as_message.content.append(
+                    MessageContent(
+                        type="text",
+                        text="</source>",
+                    )
+                )
+                sources_list.append(sources_as_message)
+            else:
+                raise ValueError(f"Unsupported MIME type: {source.mime_type}")
+
         response_stream = self.llm.generate_stream(
             [
-                LLMMessage(role=Roles.SYSTEM, content=self.system_prompt),
+                LLMMessage(
+                    role=Roles.SYSTEM,
+                    content=[MessageContent(type="text", text=self.system_prompt)],
+                ),
                 *history,
-                LLMMessage(role=Roles.USER, content=build_query_with_chunks(query, sources)),
+                *sources_list,
+                LLMMessage(
+                    role=Roles.USER,
+                    content=[MessageContent(type="text", text=query)],
+                ),
             ]
         )
 
         content = ""
         async for response_chunk in response_stream:
             if response_chunk.content:
-                content += response_chunk.content
+                for message_content in response_chunk.content:
+                    if message_content.type == "text" and message_content.text:
+                        content += message_content.text
+                    elif message_content.type == "image" and message_content.image_url:
+                        raise NotImplementedError("Image output from LLM is not supported in this version.")
                 answer = await self._answer_post_processing(
-                    AgentAnswer(content=content, role=Roles.ASSISTANT, sources=sources)
+                    AgentAnswer(
+                        content=[MessageContent(type="text", text=content)],
+                        role=Roles.ASSISTANT,
+                        sources=sources,
+                    )
                 )
                 if answer:
                     yield answer

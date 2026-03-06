@@ -10,7 +10,7 @@ from typing import Any, AsyncGenerator, Sequence
 from pydantic import BaseModel, Field
 
 from conversational_toolkit.chunking.base import Chunk
-from conversational_toolkit.llms.base import LLM, LLMMessage, Roles
+from conversational_toolkit.llms.base import LLM, LLMMessage, Roles, MessageContent
 
 
 class QueryWithContext(BaseModel):
@@ -62,7 +62,7 @@ class Agent(ABC):
             tool_call_id=tool_call_id,
             role=Roles.TOOL,
             name=function_name,
-            content=str(function_response),
+            content=[MessageContent(type="text", text=str(function_response))],
         )
 
     async def answer(self, query_with_context: QueryWithContext) -> AgentAnswer:

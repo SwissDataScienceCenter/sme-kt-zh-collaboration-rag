@@ -27,6 +27,7 @@ from conversational_toolkit.retriever.vectorstore_retriever import VectorStoreRe
 from conversational_toolkit.vectorstores.base import (
     ChunkMatch,
     ChunkRecord,
+    VectorStore,
 )  # ChunkRecord used for corpus type
 from conversational_toolkit.vectorstores.chromadb import ChromaDBVectorStore
 
@@ -65,11 +66,11 @@ async def retrieve_baseline(
 
 async def retrieve_bm25(
     query: str,
-    corpus: list[ChunkRecord],
+    vector_store: VectorStore,
     top_k: int = 5,
 ) -> RetrievalResult:
     """Pure BM25 keyword retrieval -> no embedding, scores by term frequency x IDF."""
-    retriever = BM25Retriever(corpus=corpus, top_k=top_k)
+    retriever = BM25Retriever(vector_store=vector_store, top_k=top_k)
     chunks = await retriever.retrieve(query)
     return RetrievalResult("bm25", query, chunks)
 
@@ -84,7 +85,7 @@ async def retrieve_hybrid(
 ) -> RetrievalResult:
     """Semantic + BM25 fused with Reciprocal Rank Fusion (RRF)."""
     semantic = VectorStoreRetriever(embedding_model, vector_store, top_k=top_k)
-    bm25 = BM25Retriever(corpus=corpus, top_k=top_k)
+    bm25 = BM25Retriever(vector_store=vector_store, top_k=top_k)
     hybrid = HybridRetriever(retrievers=[semantic, bm25], top_k=top_k, rrf_k=rrf_k)
     chunks = await hybrid.retrieve(query)
     return RetrievalResult("hybrid", query, chunks)
@@ -133,7 +134,7 @@ async def compare_retrieval_strategies(
     results["baseline"] = await retrieve_baseline(
         query, embedding_model, vector_store, top_k
     )
-    results["bm25"] = await retrieve_bm25(query, corpus, top_k)
+    results["bm25"] = await retrieve_bm25(query, vector_store=vector_store, top_k=top_k)
     results["hybrid"] = await retrieve_hybrid(
         query, embedding_model, vector_store, corpus, top_k
     )

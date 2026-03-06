@@ -56,6 +56,6 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def get_chunks_by_filter(self, filters: dict[str, Any]) -> list[ChunkRecord]:
+    async def get_chunks_by_filter(self, filters: dict[str, Any] | None = None) -> list[ChunkRecord]:
         """Return all chunks matching the given metadata filters (no embedding needed)."""
         pass

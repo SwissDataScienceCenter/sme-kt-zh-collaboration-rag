@@ -77,7 +77,7 @@ class ChromaDBVectorStore(VectorStore):
 
         return chunk_matches
 
-    async def get_chunks_by_filter(self, filters: dict[str, Any]) -> list[ChunkRecord]:
+    async def get_chunks_by_filter(self, filters: dict[str, Any] | None = None) -> list[ChunkRecord]:
         """
         Return all chunks matching the given metadata filters (no embedding needed).
 
@@ -92,7 +92,10 @@ class ChromaDBVectorStore(VectorStore):
                 ]
             }
         """
-        results = self.collection.get(where=filters)  # type: ignore[arg-type]
+        if not filters:
+            results = self.collection.get()
+        else:
+            results = self.collection.get(where=filters)  # type: ignore[arg-type]
 
         chunk_records = []
         if results and results["ids"]:

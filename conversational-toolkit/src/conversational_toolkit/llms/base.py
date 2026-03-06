@@ -40,6 +40,12 @@ class ToolCall(BaseModel):
     type: str
 
 
+class MessageContent(BaseModel):
+    type: str
+    text: str | None = None
+    image_url: str | None = None
+
+
 class LLMMessage(BaseModel):
     """
     A single message in a conversation sent to or received from an LLM.
@@ -47,7 +53,7 @@ class LLMMessage(BaseModel):
     'tool_calls' is populated when the assistant requests one or more tool invocations. 'tool_call_id' and 'name' are set on the follow-up TOOL role message that carries the tool result back to the model.
     """
 
-    content: str = ""
+    content: list[MessageContent]
     role: Roles = Roles.ASSISTANT
     tool_calls: list[ToolCall] | None = None
     tool_call_id: str | None = None

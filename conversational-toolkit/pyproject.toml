@@ -15,7 +15,6 @@ dependencies = [
     "loguru>=0.1.0,<1.0.0",
     "numpy>=1.0.0,<3.0.0",
     "docling>=2.0.0",
-    "pymupdf4llm>=0.0.17",
     "markitdown>=0.0.1",
     "openpyxl>=3.1.0",
     "rank-bm25>=0.2.2",
@@ -24,7 +23,7 @@ dependencies = [
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
-version = {attr = "conversational_toolkit.__version__"}
+version = { attr = "conversational_toolkit.__version__" }
 
 [tool.ruff]
 extend-include = ["*.ipynb"]
@@ -35,20 +34,20 @@ fix = true
 
 [tool.ruff.lint]
 extend-select = [
-    "W605",   # pycodestyle: invalid-escape-sequence
-    "S102",   # flake8-bandit: exec-builtin
-    "INP",    # flake8-no-pep420
-    "PYI",    # flake8-pyi
-    "PT",     # flake8-pytest-style
-    "PGH",    # pygrep-hooks
-    "PL",     # Pylint
-    "NPY",    # NumPy-specific rules
-    "RUF",    # Ruff-specific rules
+    "W605", # pycodestyle: invalid-escape-sequence
+    "S102", # flake8-bandit: exec-builtin
+    "INP", # flake8-no-pep420
+    "PYI", # flake8-pyi
+    "PT", # flake8-pytest-style
+    "PGH", # pygrep-hooks
+    "PL", # Pylint
+    "NPY", # NumPy-specific rules
+    "RUF", # Ruff-specific rules
 ]
 ignore = [
-    "NPY002",   # numpy-legacy-random
-    "PGH003",   # type ignore for mypy
-    "PLR0913",  # too many arguments (common in class __init__ signatures)
+    "NPY002", # numpy-legacy-random
+    "PGH003", # type ignore for mypy
+    "PLR0913", # too many arguments (common in class __init__ signatures)
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -22,8 +22,8 @@ class Chunk(BaseModel):
 
     Attributes:
         title: Header or label extracted from the source document.
-        content: The text content of the chunk.
-        mime_type: MIME type of the content (e.g. 'text/markdown').
+        content: The content of the chunk.
+        mime_type: MIME type of the content (e.g. 'text/markdown', 'image/png').
         metadata: Arbitrary key-value pairs from the source document
             (e.g. page number, chapter hierarchy, sheet name).
     """
