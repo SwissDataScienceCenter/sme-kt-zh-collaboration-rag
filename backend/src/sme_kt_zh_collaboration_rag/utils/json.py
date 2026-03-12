@@ -1,12 +1,16 @@
-from partial_json_parser import loads as partial_json_loads
+from typing import Any
+
+from partial_json_parser import loads as partial_json_loads  # type: ignore[import-untyped]
 
 
-def parse_llm_json_stream(input_str: str) -> dict[str, str] | None:
+def parse_llm_json_stream(input_str: str) -> dict[str, Any] | None:
     try:
         opening_bracket_index = input_str.index("{")
         json_part = input_str[opening_bracket_index:]
         json_object = partial_json_loads(json_part)
-        return json_object
+        if not isinstance(json_object, dict):
+            return None
+        return json_object  # type: ignore[return-value]
 
     except ValueError as e:
         # TODO: Fix

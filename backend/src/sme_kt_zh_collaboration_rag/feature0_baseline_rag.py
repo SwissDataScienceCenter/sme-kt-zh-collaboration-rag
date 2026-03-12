@@ -4,15 +4,15 @@ Baseline RAG pipeline.
 Each pipeline stage is an independent function so you can run and inspect individual steps without executing the full pipeline.
 
 Steps at a glance:
-    1  load_chunks()         — Load PDFs, split into header-based chunks
-    2  build_vector_store()  — Embed chunks and persist to ChromaDB
-    3  inspect_retrieval()   — Run semantic search and print results
-    4  build_agent()         — Assemble the RAG agent from the vector store
-    5  ask()                 — Send a query and return the answer
+    1  load_chunks(): Load PDFs, split into header-based chunks
+    2  build_vector_store(): Embed chunks and persist to ChromaDB
+    3  inspect_retrieval(): Run semantic search and print results
+    4  build_agent(): Assemble the RAG agent from the vector store
+    5  ask(): Send a query and return the answer
 
-LLM backends (BACKEND must be set explicitly — there is no default):
-    ollama — local Ollama server at http://localhost:11434
-    openai — requires OPENAI_API_KEY (env var or /secrets/OPENAI_API_KEY file)
+LLM backends (BACKEND must be set explicitly, there is no default):
+    ollama: local Ollama server at http://localhost:11434
+    openai: requires OPENAI_API_KEY (env var or /secrets/OPENAI_API_KEY file)
 
 Data & vector store:
     PDFs are read from <project-root>/data/.
@@ -275,13 +275,7 @@ async def build_vector_store(
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i : i + batch_size]
 
-        # Text embeddings need content strings; multimodal embeddings need Chunk objects
-        if all(c.mime_type.startswith("text") for c in batch):
-            embeddings = await embedding_model.get_embeddings(
-                [c.content for c in batch]
-            )
-        else:
-            embeddings = await embedding_model.get_embeddings(batch)
+        embeddings = await embedding_model.get_embeddings([c.content for c in batch])
 
         await vector_store.insert_chunks(chunks=batch, embedding=embeddings)
 
@@ -360,14 +354,16 @@ async def ask(
     logger.info(f"Query: {query!r}")
     response = await agent.answer(QueryWithContext(query=query, history=history or []))
 
+    answer_text = "".join(mc.text for mc in response.content if mc.text)
+
     logger.info("Answer:")
-    print(f"{response.content}")
+    print(answer_text)
     print(f"Sources ({len(response.sources)}):")
     for src in response.sources:
         source_file = src.metadata.get("source_file", "?")  # type: ignore[union-attr]
         print(f"  {source_file!r}  |  {src.title!r}")
 
-    return response.content
+    return answer_text
 
 
 async def run_pipeline(

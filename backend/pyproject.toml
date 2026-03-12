@@ -21,8 +21,16 @@ dependencies = [
     "openai==2.21.0",
     "sentence-transformers==5.1.1",
     "matplotlib==3.10.8",
+    "partial-json-parser==0.2.1.1.post7",
 ]
 dynamic = ["version"]
+
+[tool.mypy]
+python_version = "3.11"
+
+[[tool.mypy.overrides]]
+module = "matplotlib.*"
+ignore_missing_imports = true
 
 [tool.setuptools]
 package-dir = { "" = "src" }

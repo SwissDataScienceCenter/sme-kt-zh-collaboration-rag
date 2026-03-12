@@ -64,9 +64,9 @@ SYSTEM_PROMPT = dedent("""
        If it does NOT appear, respond: "The sources do not contain information about
        [entity]. I cannot answer this question." Do not substitute other products.
     3. Distinguish clearly between:
-       VERIFIED — backed by a third-party EPD or independent audit
-       CLAIMED  — supplier self-declaration, not independently verified
-       MISSING  — not found in sources
+       VERIFIED: backed by a third-party EPD or independent audit
+       CLAIMED: supplier self-declaration, not independently verified
+       MISSING: not found in sources
     4. Label forward-looking targets (e.g. "carbon neutral by 2025") as targets,
        not as current verified status.
     5. Always cite the source document for each claim.
@@ -75,21 +75,25 @@ SYSTEM_PROMPT = dedent("""
 
 class CustomRAG(RAG):
     async def _answer_post_processing(self, answer: AgentAnswer) -> AgentAnswer:
-        json_answer: dict[str, Any] = (
-            parse_llm_json_stream(answer.content[0].text if answer.content else "")
-            or {}
-        )
+        raw_text = (answer.content[0].text if answer.content else "") or ""
+        json_answer: dict[str, Any] = parse_llm_json_stream(raw_text) or {}
 
         content: str = json_answer.get("answer", "")
         relevant_source_ids: list[str] = json_answer.get("used_sources_id", [])
         follow_up_questions: list[str] = json_answer.get("follow_up_questions", [])
-        unique_sources = list({s.id: s for s in answer.sources}.values())
-        return AgentAnswer(
-            content=[MessageContent(type="text", text=content)],
-            sources=[
-                source for source in unique_sources if source.id in relevant_source_ids
-            ],
-            follow_up_questions=follow_up_questions,
+        unique_sources = list(
+            {getattr(s, "id", None): s for s in answer.sources}.values()
+        )
+        return answer.model_copy(
+            update={
+                "content": [MessageContent(type="text", text=content)],
+                "sources": [
+                    source
+                    for source in unique_sources
+                    if getattr(source, "id", None) in relevant_source_ids
+                ],
+                "follow_up_questions": follow_up_questions,
+            }
         )
 
 
